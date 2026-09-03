@@ -1,23 +1,34 @@
-import "./styles.css";
+import "./styles/base.css";
+import "./styles/nav.css";
+import "./styles/pages.css";
+import "./styles/tree.css";
 
 import { D, S, recompute, setState, tick, gainLoc, rankName } from "./core/engine";
 import { PICK_RANK, RANKS } from "./data/ranks";
-import { debugSession, writeCode } from "./core/actions";
 import { dueOpportunity, maybeIncident, scheduleOpportunity, takeOpportunity, type Opportunity } from "./core/events";
-import { exportSave, importSave, load, save, wipe } from "./core/save";
-import { newGame } from "./core/state";
+import { load, save } from "./core/save";
 import { onLog } from "./core/bus";
-import { fmt } from "./core/format";
+import { fmt, money } from "./core/format";
+import { pageUnlocked, unlockedPages, type PageId } from "./core/unlocks";
+import { GENERATORS } from "./data/generators";
 
 import { SHELL } from "./ui/shell";
 import { $, el } from "./ui/dom";
 import { closeModal, openModal } from "./ui/modal";
-import { floatText, paintStatus, pushLine, pushLog, renderBuffs, renderSignature } from "./ui/status";
-import { anyAffordable, initTree, renderTree } from "./ui/treetab";
-import {
-  initPanels, offerTrack, offlineReport, openStats,
-  renderAwards, renderCareer, renderPrestige, renderTrack,
-} from "./ui/panels";
+import { paintStatus, pushLine, pushLog, renderBuffs, renderSignature } from "./ui/status";
+import { toast } from "./ui/toast";
+import { current, go, mountPages, renderActive } from "./ui/router";
+import { buildNav, paintNav, setBadge } from "./ui/nav";
+import { anyAffordable } from "./ui/treetab";
+
+import { page as desk, pressDebug, pressWrite } from "./ui/pages/desk";
+import { page as tools } from "./ui/pages/tools";
+import { page as skills } from "./ui/pages/skills";
+import { page as career, offerTrack } from "./ui/pages/career";
+import { page as awards } from "./ui/pages/awards";
+import { page as hop } from "./ui/pages/hop";
+import { page as stats } from "./ui/pages/stats";
+import { page as settings, applyTheme, onStateReload, toggleTheme } from "./ui/pages/settings";
 
 /* ------------------------------------------------------------------ *
  *  boot
@@ -30,143 +41,94 @@ setState(state);
 applyTheme();
 onLog(pushLog);
 
-type TabName = "tree" | "track" | "career" | "awards" | "reset";
-const TABS: TabName[] = ["tree", "track", "career", "awards", "reset"];
-let activeTab: TabName = "tree";
-
 function renderAll(): void {
   recompute();
-  renderTree();
-  renderTrack();
-  renderCareer();
-  renderAwards();
-  renderPrestige();
+  renderActive();
   renderBuffs();
   renderSignature();
   paintStatus();
+  refreshBadges();
 }
 
-function setTab(name: TabName): void {
-  activeTab = name;
-  document.querySelectorAll<HTMLElement>("#tabs .tab").forEach((t) => {
-    t.setAttribute("aria-selected", String(t.dataset.tab === name));
-  });
-  for (const p of TABS) $(`pane-${p}`).hidden = p !== name;
-  if (name === "tree") renderTree();
-  if (name === "track") renderTrack();
-  if (name === "career") renderCareer();
-  if (name === "awards") renderAwards();
-  if (name === "reset") renderPrestige();
-  refreshDots();
-}
-
-function refreshDots(): void {
-  $("dot-tree").hidden = !anyAffordable() || activeTab === "tree";
-  $("dot-trk").hidden = !(!S.track && S.rank >= PICK_RANK) || activeTab === "track";
-  $("dot-rst").hidden = S.runLoc < 2e7 || activeTab === "reset";
-}
-
-initTree(afterPurchase);
-initPanels(renderAll);
-
-function afterPurchase(): void {
+/** Click-driven gains still need rank and award checks; tick(0) does exactly that. */
+function handleProgress(): void {
+  const res = tick(0);
+  announce(res.promotions, res.awards, 0);
   paintStatus();
-  refreshDots();
 }
+
+function afterChange(): void {
+  recompute();
+  paintStatus();
+  refreshBadges();
+}
+
+mountPages([desk, tools, skills, career, awards, hop, stats, settings], {
+  changed: afterChange,
+  progress: handleProgress,
+});
+buildNav();
+onStateReload(renderAll);
 
 /* ------------------------------------------------------------------ *
- *  controls
+ *  HUD, dock, keys
  * ------------------------------------------------------------------ */
 
-$("tabs").addEventListener("click", (e) => {
-  const t = (e.target as HTMLElement | null)?.closest(".tab") as HTMLElement | null;
-  if (t?.dataset.tab) setTab(t.dataset.tab as TabName);
-});
-
-$("btn-code").addEventListener("click", (ev) => {
-  const gained = writeCode();
-  pushLine();
-  floatText(ev, `+${fmt(gained)}`);
-  handleProgress();
-  paintStatus();
-});
-
-$("btn-debug").addEventListener("click", () => {
-  debugSession();
-  paintStatus();
-  if (activeTab === "tree") renderTree();
-});
-
-$("btn-stats").addEventListener("click", (e) => {
-  e.stopPropagation();
-  openStats();
-});
-
-$("btn-theme").addEventListener("click", () => {
-  const systemDark = window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
-  S.theme = !S.theme ? (systemDark ? "light" : "dark") : S.theme === "dark" ? "light" : "dark";
-  applyTheme();
-  save(S);
-});
-
-$("btn-settings").addEventListener("click", openSettings);
+$("btn-theme").addEventListener("click", toggleTheme);
+$("btn-settings").addEventListener("click", () => go("settings"));
+$("dock-code").addEventListener("click", (ev) => pressWrite($("dock"), ev));
+$("dock-debug").addEventListener("click", pressDebug);
 
 document.addEventListener("keydown", (e) => {
   if (e.key === " " && e.target === document.body) {
     e.preventDefault();
-    writeCode();
-    pushLine();
-    handleProgress();
-    paintStatus();
+    pressWrite(current() === "desk" ? $("clickzone") : $("dock"), null);
   }
   if (e.key === "Escape") closeModal();
 });
 
-function applyTheme(): void {
-  if (S.theme) document.documentElement.setAttribute("data-theme", S.theme);
-  else document.documentElement.removeAttribute("data-theme");
+/* ------------------------------------------------------------------ *
+ *  badges and page reveals
+ * ------------------------------------------------------------------ */
+
+function refreshBadges(): void {
+  const gen = GENERATORS.some((g) => S.money >= (D.genCost[g.id] ?? g.cost));
+  setBadge("tools", gen ? "dot" : null);
+  setBadge("skills", anyAffordable() ? "dot" : null);
+  setBadge("career", !S.track && S.rank >= PICK_RANK ? "dot" : null);
+  setBadge("hop", S.runLoc >= 2e7 ? "dot" : null);
+  paintNav();
 }
 
-function openSettings(): void {
-  openModal(
-    `<h3>Settings</h3><p>Your run lives in this browser only.</p>` +
-      `<div class="actions" style="justify-content:flex-start;margin-bottom:14px">` +
-      `<button class="btn ghost" id="m-export">Copy save</button>` +
-      `<button class="btn ghost" id="m-import">Load save</button>` +
-      `<button class="btn ghost" id="m-wipe" style="color:var(--fail)">Erase everything</button></div>` +
-      `<textarea id="m-box" spellcheck="false" placeholder="Paste a save here, then press Load save"></textarea>` +
-      `<div class="actions" style="margin-top:14px"><button class="btn" data-close>Done</button></div>`,
-  );
-  $("m-export").addEventListener("click", () => {
-    const box = $<HTMLTextAreaElement>("m-box");
-    box.value = exportSave(S);
-    box.select();
-  });
-  $("m-import").addEventListener("click", () => {
-    const parsed = importSave($<HTMLTextAreaElement>("m-box").value);
-    if (!parsed) {
-      window.alert("That does not look like a save from this game.");
-      return;
+const REVEAL: Record<PageId, string> = {
+  desk: "",
+  tools: "Tools unlocked. Your first purchase is waiting.",
+  skills: "Skills unlocked. Knowledge opens the first gateway.",
+  career: "Career unlocked. The ladder is now visible.",
+  awards: "Awards unlocked.",
+  hop: "Job Hop unlocked. Twenty million lines this run makes it worth it.",
+  stats: "Stats unlocked.",
+  settings: "",
+};
+
+let known = new Set<PageId>(unlockedPages());
+
+/** Whatever an old save has already earned opens silently; only new reveals are announced. */
+function watchUnlocks(): void {
+  const now = unlockedPages();
+  let changed = false;
+  for (const id of now) {
+    if (known.has(id)) continue;
+    changed = true;
+    if (REVEAL[id]) {
+      pushLog(REVEAL[id], "hi");
+      toast(REVEAL[id], "hi");
     }
-    setState(parsed);
-    closeModal();
-    renderAll();
-    pushLog("Save loaded.", "hi");
-  });
-  $("m-wipe").addEventListener("click", () => {
-    openModal(
-      `<h3>Erase everything?</h3><p>Every run, star, perk, mastery and award is deleted. There is no undo.</p>` +
-        `<div class="actions"><button class="btn ghost" data-close>Keep it</button>` +
-        `<button class="btn" id="m-yes" style="background:var(--fail);color:#fff">Erase</button></div>`,
-    );
-    $("m-yes").addEventListener("click", () => {
-      wipe();
-      setState(newGame());
-      closeModal();
-      renderAll();
-      pushLog("Fresh start. Line one.", "");
-    });
-  });
+  }
+  if (changed) {
+    known = new Set(now);
+    paintNav();
+  }
 }
 
 /* ------------------------------------------------------------------ *
@@ -202,21 +164,21 @@ function removeChip(): void {
  *  loop
  * ------------------------------------------------------------------ */
 
-/** Click-driven gains still need rank and award checks; tick(0) does exactly that. */
-function handleProgress(): void {
-  const res = tick(0);
-  announce(res.promotions, res.awards, 0);
-}
-
 function announce(promotions: number[], awards: string[], released: number): void {
-  for (const r of promotions) pushLog(`Promoted to ${rankName(r)}. ${RANKS[r].note}`, "hi");
-  for (const a of awards) pushLog(`Award unlocked: ${a}.`, "hi");
+  for (const r of promotions) {
+    pushLog(`Promoted to ${rankName(r)}. ${RANKS[r].note}`, "hi");
+    toast(`Promoted to ${rankName(r)}.`, "hi");
+  }
+  for (const a of awards) {
+    pushLog(`Award unlocked: ${a}.`, "hi");
+    toast(`Award: ${a}`, "good");
+  }
   if (released > 0) pushLog(`Shipped a release. Bonus: $${fmt(released)}.`, "good");
   if (promotions.length) {
-    renderCareer();
+    if (current() === "career") renderActive();
     if (S.rank >= PICK_RANK && !S.track && !S.trackDeferred) setTimeout(offerTrack, 260);
   }
-  if (awards.length) renderAwards();
+  if (awards.length && current() === "awards") renderActive();
 }
 
 let last = Date.now();
@@ -236,7 +198,6 @@ function loop(): void {
   maybeIncident();
 
   paintStatus();
-  refreshDots();
 }
 
 /* offline catch-up */
@@ -255,6 +216,19 @@ function offlineCatchUp(): void {
   setTimeout(() => offlineReport(capped, loc, cash, kp, away > D.offCap * 3600), 260);
 }
 
+function offlineReport(seconds: number, loc: number, cash: number, kp: number, capped: boolean): void {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  openModal(
+    `<h3>You were away</h3>` +
+      `<p>The setup kept shipping for ${h > 0 ? `${h}h ` : ""}${m}m${capped ? ` (capped at ${D.offCap}h)` : ""}.</p>` +
+      `<div class="kv"><span>Lines written</span><span>${fmt(loc)}</span></div>` +
+      `<div class="kv"><span>Earned</span><span>${money(cash)}</span></div>` +
+      `<div class="kv"><span>Knowledge</span><span>${fmt(kp)} KP</span></div>` +
+      `<div class="actions" style="margin-top:16px"><button class="btn" data-close>Back to work</button></div>`,
+  );
+}
+
 renderAll();
 for (let i = 0; i < 4; i++) pushLine();
 scheduleOpportunity();
@@ -267,15 +241,18 @@ if (existed) {
   pushLog("Press Write code. That is how everyone starts.", "hi");
 }
 if (!S.track && !S.trackDeferred && S.rank >= PICK_RANK) setTimeout(offerTrack, 900);
+if (!pageUnlocked(current())) go("desk");
 
 setInterval(loop, 100);
 setInterval(() => {
   if (D.lps > 0) pushLine();
 }, 1400);
-setInterval(renderBuffs, 1000);
 setInterval(() => {
-  if (activeTab === "tree") renderTree();
-}, 2500);
+  renderBuffs();
+  refreshBadges();
+  watchUnlocks();
+}, 1000);
+setInterval(renderActive, 2500);
 setInterval(() => save(S), 10_000);
 
 document.addEventListener("visibilitychange", () => {

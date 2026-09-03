@@ -1,0 +1,88 @@
+/* ---------- app frame: sidebar + pages ---------- */
+.statusbar-in{max-width:none}
+.body{display:grid;grid-template-columns:208px minmax(0,1fr);min-height:calc(100vh - 53px)}
+.pages{min-width:0;padding:0 16px 48px}
+.page{margin-top:14px}
+
+.sidenav{
+  position:sticky;top:53px;height:calc(100vh - 53px);
+  display:flex;flex-direction:column;gap:2px;padding:12px 8px;
+  background:var(--surface);border-right:1px solid var(--line);
+}
+.navlist{display:flex;flex-direction:column;gap:2px}
+.navbtn{
+  position:relative;width:100%;display:flex;align-items:center;gap:10px;
+  padding:9px 11px;border-radius:9px;border:1px solid transparent;background:transparent;
+  cursor:pointer;color:var(--ink2);font-family:var(--sans);font-size:13px;font-weight:500;text-align:left;
+}
+.navbtn:hover{background:var(--surface2);color:var(--ink)}
+.navbtn[aria-current="true"]{background:var(--accent-wash);color:var(--accent);border-color:var(--accent-line);font-weight:600}
+.navbtn .ng{font-family:var(--mono);font-size:13px;width:22px;text-align:center;flex:none}
+.navbtn .nb{margin-left:auto;flex:none}
+.navbtn .nb.dot{width:7px;height:7px;border-radius:99px;background:var(--accent)}
+.navbtn .nb.new{
+  font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;
+  padding:1px 6px;border-radius:5px;background:var(--accent);color:#fff;
+}
+:root[data-theme="dark"] .nb.new,:root:not([data-theme="light"]) .nb.new{color:#1A1206}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]) .nb.new{color:#fff}}
+.navbtn[hidden]{display:none !important}
+.page[hidden]{display:none}
+.navmore{display:none}
+.navmore.dot::after{content:"";position:absolute;top:6px;right:10px;width:7px;height:7px;border-radius:99px;background:var(--accent)}
+
+/* the quick dock: the click loop on every page but the desk */
+.dock{margin-top:auto;display:flex;flex-direction:column;gap:6px;padding-top:12px;border-top:1px solid var(--line-soft)}
+.dock[hidden]{display:none}
+.dockbtn{
+  position:relative;overflow:hidden;width:100%;border:none;border-radius:9px;cursor:pointer;
+  background:var(--accent);color:#fff;font-family:var(--display);font-weight:700;font-size:14px;
+  padding:11px 10px;display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:filter .1s, transform .06s;user-select:none;-webkit-tap-highlight-color:transparent;
+}
+:root[data-theme="dark"] .dockbtn,:root:not([data-theme="light"]) .dockbtn{color:#1A1206}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]) .dockbtn{color:#fff}}
+.dockbtn:hover{filter:brightness(1.07)}
+.dockbtn:active{transform:translateY(1px)}
+.dockbtn .per{font-size:11px;font-weight:500;opacity:.82}
+.dock .float{color:#fff;text-shadow:none}
+
+/* ---------- toasts ---------- */
+.toasts{
+  position:fixed;top:64px;right:14px;z-index:70;display:flex;flex-direction:column;gap:6px;
+  pointer-events:none;max-width:min(360px,calc(100vw - 28px));
+}
+.toast{
+  background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:9px;padding:9px 12px;font-size:12.5px;box-shadow:var(--shadow-lift);
+  animation:pop .3s cubic-bezier(.2,1.4,.4,1);transition:opacity .3s,transform .3s;
+}
+.toast.out{opacity:0;transform:translateX(12px)}
+.toast.good{border-left-color:var(--pass)}
+.toast.bad{border-left-color:var(--fail)}
+
+/* ---------- narrow: bottom bar ---------- */
+@media (max-width:860px){
+  .body{grid-template-columns:1fr;min-height:0}
+  .pages{padding:0 12px 150px}
+  .sidenav{
+    position:fixed;left:0;right:0;bottom:0;top:auto;height:auto;z-index:50;
+    flex-direction:row;flex-wrap:wrap;gap:0 2px;
+    padding:6px 8px calc(6px + env(safe-area-inset-bottom));
+    border-right:none;border-top:1px solid var(--line);
+    box-shadow:0 -8px 24px -16px rgba(0,0,0,.4);
+  }
+  .navlist{flex-direction:row;flex:1;gap:2px}
+  .navbtn{flex:1;flex-direction:column;justify-content:center;gap:3px;padding:6px 4px;font-size:10px;border-radius:8px}
+  .navbtn .ng{width:auto;font-size:15px}
+  .navbtn .nb{position:absolute;top:3px;right:6px;margin:0}
+  .navbtn.overflow{display:none}
+  .sidenav.has-more .navmore{display:flex;flex:1;flex-direction:column;justify-content:center;gap:3px;padding:6px 4px;font-size:10px}
+  .sidenav.open .navbtn.overflow{display:flex}
+  .sidenav.open .navlist{flex-wrap:wrap}
+  .sidenav.open .navbtn{flex:1 1 22%}
+  .dock{order:-1;width:100%;flex-direction:row;margin:0 0 6px;padding:0 0 6px;border-top:none;border-bottom:1px solid var(--line-soft)}
+  .dockbtn{flex:1;padding:9px 10px}
+  .toasts{top:auto;bottom:150px;right:12px;left:12px;max-width:none;align-items:center}
+  .eventzone{bottom:96px}
+}

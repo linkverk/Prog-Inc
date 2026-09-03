@@ -20,6 +20,7 @@ export function paintStatus(): void {
     $("s-rep").innerHTML = `${fmt(S.rep)}<small>★</small>`;
   }
   $("click-per").textContent = `+${fmt(D.click)} LOC`;
+  $("dock-per").textContent = `+${fmt(D.click)}`;
 
   const r = RANKS[S.rank];
   $("rank-idx").textContent = `Rank ${String(S.rank + 1).padStart(2, "0")} / ${RANKS.length}`;
@@ -99,8 +100,11 @@ function paintBugs(): void {
   $("debug-note").textContent = bounty
     ? `Pays ${money(D.bountyValue)} per finding`
     : `Closes up to ${fmt(D.debug)} bugs`;
-  $("btn-debug").textContent = bounty ? "Submit" : "Squash";
-  ($("btn-debug") as HTMLButtonElement).disabled = S.bugs < 1;
+  for (const id of ["btn-debug", "dock-debug"]) {
+    const b = $<HTMLButtonElement>(id);
+    b.textContent = bounty ? "Submit" : "Squash";
+    b.disabled = S.bugs < 1;
+  }
 }
 
 /* ---------------- specialisation panel ---------------- */
@@ -230,8 +234,7 @@ export function pushLine(): void {
 
 /* ---------------- floating +N ---------------- */
 
-export function floatText(ev: MouseEvent | null, txt: string): void {
-  const zone = $("clickzone");
+export function floatText(zone: HTMLElement, ev: MouseEvent | null, txt: string): void {
   const f = el("span", "float", txt);
   const r = zone.getBoundingClientRect();
   const x = ev?.clientX ? ev.clientX - r.left : r.width / 2;

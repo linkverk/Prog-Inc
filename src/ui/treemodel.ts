@@ -161,7 +161,7 @@ export function register(spec: NodeSpec): NodeSpec {
 }
 
 /** The eight upgrade tiers of one tool, in unlock order. */
-function tiersOf(gid: string): Upgrade[] {
+export function tiersOf(gid: string): Upgrade[] {
   return UPGRADES.filter((u) => u.family === "generator" && u.reqGen?.[0] === gid).sort(
     (a, b) => (a.reqGen?.[1] ?? 0) - (b.reqGen?.[1] ?? 0),
   );

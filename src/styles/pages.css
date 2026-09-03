@@ -1,0 +1,50 @@
+/* ---------- desk ---------- */
+.deskgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}
+.deskcol{display:flex;flex-direction:column;gap:14px;min-width:0}
+@media (max-width:720px){.deskgrid{grid-template-columns:1fr}}
+
+.pagesub{font-family:var(--display);font-size:16px;letter-spacing:-.01em;margin:20px 0 6px}
+
+/* ---------- tools ---------- */
+.toolhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.tool{
+  display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:start;
+  padding:10px 12px;background:var(--surface2);border:1px solid var(--line-soft);border-radius:9px;
+  transition:border-color .12s;
+}
+.tool.afford{border-color:var(--accent-line)}
+.tool.locked{opacity:.5}
+.tool .glyph{
+  width:38px;height:38px;border-radius:8px;display:grid;place-items:center;
+  background:var(--surface);border:1px solid var(--line);font-size:18px;flex:none;
+}
+.tool.have .glyph{border-color:var(--pass-wash);background:var(--pass-wash)}
+.tool .tbody{display:block;min-width:0}
+.tool .tbody>span{display:block}
+.tool .nm{font-weight:600;font-size:13.5px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.tool .ds{font-size:11.5px;color:var(--ink3);margin-top:2px;line-height:1.4}
+.tool .rt{font-family:var(--mono);font-size:10.5px;color:var(--ink2);margin-top:3px}
+.tool .price{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex:none}
+.tool .c{font-family:var(--mono);font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tool .c.ok{color:var(--pass)}
+.tool .c.no{color:var(--ink3)}
+
+.tool .tbody>.tiers,.tiers{display:flex;flex-wrap:wrap;gap:4px;margin-top:7px}
+.tier{
+  font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:6px;
+  border:1px solid var(--line-soft);background:var(--surface);color:var(--ink3);white-space:nowrap;
+}
+.tier.locked{opacity:.6;border-style:dashed}
+.tier.owned{background:var(--pass-wash);color:var(--pass);border-color:transparent}
+button.tier{cursor:pointer;color:var(--ink)}
+button.tier.ready{border-color:var(--accent-line);color:var(--accent)}
+button.tier:disabled{cursor:not-allowed}
+.tier b{font-weight:700}
+
+@media (max-width:600px){
+  .tool{grid-template-columns:auto 1fr}
+  .tool .price{grid-column:1 / -1;flex-direction:row;justify-content:space-between;align-items:center}
+}
+
+/* ---------- stats, settings ---------- */
+.statgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;align-items:start}
