@@ -48,3 +48,24 @@ button.tier:disabled{cursor:not-allowed}
 
 /* ---------- stats, settings ---------- */
 .statgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;align-items:start}
+
+/* ---------- awards ---------- */
+.achbar{
+  height:5px;border-radius:3px;background:var(--surface2);
+  border:1px solid var(--line-soft);overflow:hidden;margin:0 0 10px;
+}
+.achbar>b{display:block;height:100%;background:var(--accent);transition:width .3s}
+.achh{
+  grid-column:1/-1;margin:10px 0 1px;font-size:11px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--ink3);font-weight:600;
+}
+.achh:first-child{margin-top:0}
+.ach .achb{min-width:0;flex:1}
+.ach.secret .an{letter-spacing:.15em}
+.achp{display:flex;align-items:center;gap:6px;margin-top:5px}
+.achp>i{
+  flex:1;height:4px;border-radius:2px;background:var(--line-soft);
+  overflow:hidden;display:block;
+}
+.achp>i>b{display:block;height:100%;background:var(--accent);opacity:.75}
+.achp>span{font-family:var(--mono);font-size:10px;color:var(--ink3);white-space:nowrap}

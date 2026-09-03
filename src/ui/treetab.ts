@@ -1,18 +1,20 @@
 import type { BranchId } from "../core/types";
+import type { Derived } from "../core/engine";
 import type { Found, LayerId, NodeSpec } from "./treemodel";
 import {
-  LAYERS, UPGRADE_TOTAL, affordableLevels, allNodes, anyAffordable, bulkPrice, buyNode, costOf,
-  layerLayout, levelOf, lockReason, priceLabel, resetLayouts, specById, statusOf, symbolOf,
-  unlocked, upgradesOwned,
+  GLOBAL_SKILLS, LAYERS, UPGRADE_TOTAL, affordableLevels, allNodes, anyAffordable, bulkPrice,
+  buyNode, costOf, discovered, layerLayout, layerProgress, levelOf, lockReason, priceLabel,
+  resetLayouts, specById, statusOf, symbolOf, unlocked, upgradesOwned,
 } from "./treemodel";
 import { floatText } from "./status";
 import {
   FAMILIES, allWebNodes, branchHubId, connectionsOf, density, edgeCount, familiesOn, hubOf,
-  isOpen, mode, nodeCount, openPath, setDensityMode, setMode, shapeKey, toggleFamily,
-  toggleOpen, webEdges, webRoot,
+  isOpen, mode, nodeCount, openPath, opensOf, reveal, setDensityMode, setMode, setReveal,
+  shapeKey, toggleFamily, toggleOpen, webEdges, webRoot,
 } from "./treegraph";
-import { D, S, branchOpen } from "../core/engine";
-import { BRANCH_BY_ID } from "../data/branches";
+import { D, S, SKILL_BY_ID, UPGRADE_BY_ID, branchOpen } from "../core/engine";
+import { gainOf, previewGenerator, previewSkill, previewUpgrade, type Preview } from "../core/preview";
+import { BRANCH_BY_ID, BRANCH_IDS } from "../data/branches";
 import { GENERATORS } from "../data/generators";
 import { fmt, money } from "../core/format";
 import { $, delegate, esc } from "./dom";
@@ -132,6 +134,11 @@ export function initTree(changed: () => void): void {
     refit();
   });
 
+  delegate($("tree-reveal"), "[data-reveal]", (t) => {
+    setReveal(t.dataset.reveal === "all" ? "all" : "earned");
+    renderTree();
+  });
+
   delegate($("tree-density"), "[data-density]", (t) => {
     setDensityMode(t.dataset.density as Density);
     // the flat layers are memoised, and they were measured with the old spacing
@@ -203,6 +210,9 @@ export function renderTree(): void {
   document.querySelectorAll<HTMLElement>("#tree-density [data-density]").forEach((b) => {
     b.setAttribute("aria-pressed", String(b.dataset.density === density()));
   });
+  document.querySelectorAll<HTMLElement>("#tree-reveal [data-reveal]").forEach((b) => {
+    b.setAttribute("aria-pressed", String(b.dataset.reveal === reveal()));
+  });
   $("tree-fams").hidden = !web;
   // the map wants room; a flat layer is happier short, next to its detail panel
   $("treecanvas").classList.toggle("web", web);
@@ -246,7 +256,8 @@ function buildChips(): void {
     b.dataset.layer = l.id;
     b.innerHTML =
       `<span class="bn">${esc(l.name)} <span class="bsym">${l.sym}</span></span>` +
-      `<span class="bbal"></span><span class="brate"></span>`;
+      `<span class="bbal"></span><span class="brate"></span>` +
+      `<i class="lbar"><b></b></i>`;
     host.appendChild(b);
     chips.set(l.id, b);
   }
@@ -266,20 +277,21 @@ function paintChips(): void {
       bal = money(S.money);
       rate = `${fmt(tools)} tools · +${fmt(D.lps)} LOC/s`;
     } else if (l.id === "global") {
-      const opened = ["g0", "g1", "g2", "g3"].filter((id) => S.skills[id]).length;
+      const opened = GLOBAL_SKILLS.filter((s) => S.skills[s.id]).length;
       bal = `${fmt(S.kp)} knowledge`;
-      rate = `${opened}/4 gateways · +${fmt(D.kps)}/s`;
+      rate = `${opened}/${GLOBAL_SKILLS.length} gateways · +${fmt(D.kps)}/s`;
     } else if (l.id === "upgrades") {
       bal = money(S.money);
       rate = `${upgradesOwned()}/${UPGRADE_TOTAL} owned`;
     } else {
       const b = BRANCH_BY_ID[l.id as BranchId];
       const open = branchOpen(b.id);
-      const all = layerLayout(b.id).nodes;
-      const have = all.filter((n) => levelOf(n.spec as NodeSpec) > 0).length;
+      const p = layerProgress(b.id);
       shut = !open;
       bal = open ? `${fmt(S.cur[b.id])} ${b.curName}` : `locked · ${fmt(b.gateCost)} KP`;
-      rate = open ? `+${fmt(D.curRate[b.id])}/s · ${have}/${all.length} owned` : "";
+      rate = open
+        ? `+${fmt(D.curRate[b.id])}/s · ${p.nodes[0]}/${p.nodes[1]} · ${fmt(p.levels[0])} levels`
+        : "";
     }
 
     const here = web ? isOpen(hubFor(l.id)) : selected === l.id;
@@ -287,6 +299,8 @@ function paintChips(): void {
     chip.setAttribute("aria-pressed", String(here));
     text(chip, ".bbal", bal);
     text(chip, ".brate", rate);
+    const bar = chip.querySelector(".lbar>b") as HTMLElement | null;
+    if (bar) bar.style.width = `${(layerProgress(l.id).fill * 100).toFixed(1)}%`;
   }
 }
 
@@ -412,6 +426,8 @@ function defaultPick(): string | null {
  * ---------------------------------------------------------------- */
 
 function matches(spec: NodeSpec): boolean {
+  // a node you have not discovered cannot be searched for: that would give the map away
+  if (!discovered(spec)) return false;
   if (query && !`${spec.name} ${spec.desc}`.toLowerCase().includes(query)) return false;
   const st = statusOf(spec);
   switch (lens) {
@@ -500,11 +516,144 @@ function renderConnections(id: string): string {
   );
 }
 
+/** How many the buttons are about to buy, which is what a preview should be about. */
+function wantedCount(spec: NodeSpec): number {
+  if (spec.kind === "upgrade") return 1;
+  const cap = spec.maxLevel > 0 ? spec.maxLevel - levelOf(spec) : 1000;
+  if (S.bulk === "max") return Math.max(1, affordableLevels(spec, cap));
+  return Math.max(1, Math.min(S.bulk, cap));
+}
+
+function previewOf(spec: NodeSpec, n: number): Preview | null {
+  if (spec.kind === "skill") return previewSkill(SKILL_BY_ID[spec.key], n);
+  if (spec.kind === "gen") return previewGenerator(spec.key, n);
+  if (spec.kind === "upgrade") return previewUpgrade(UPGRADE_BY_ID[spec.key]);
+  return null;
+}
+
+interface Readout {
+  label: string;
+  read: (d: Derived) => number;
+  /** false for the ones where down is the improvement: bug rate, tool prices */
+  up: boolean;
+}
+
+/**
+ * Everything a purchase could plausibly move. Only the rows that actually change get
+ * drawn, so a bug-rate skill shows a bug-rate line and an output skill shows LOC/s —
+ * the panel says what *this* node does rather than the same four numbers every time.
+ */
+const READOUTS: Readout[] = [
+  { label: "LOC/s", read: (d) => d.lps, up: true },
+  { label: "$/s", read: (d) => d.mps, up: true },
+  { label: "KP/s", read: (d) => d.kps, up: true },
+  { label: "per click", read: (d) => d.click, up: true },
+  { label: "bug rate", read: (d) => d.bugRate, up: false },
+  { label: "bug bite", read: (d) => d.sev, up: false },
+  { label: "per debug", read: (d) => d.debug, up: true },
+  { label: "auto-cleanup", read: (d) => d.clean, up: true },
+  { label: "tool prices", read: (d) => d.costMult, up: false },
+  { label: "offline rate", read: (d) => d.offEff, up: true },
+  { label: "offline cap", read: (d) => d.offCap, up: true },
+  { label: "luck", read: (d) => d.luck, up: true },
+];
+
+/** Small gains still deserve a number; only genuine noise is rounded away. */
+function gainText(g: number): string {
+  const v = g * 100;
+  const digits = Math.abs(v) < 1 ? 3 : Math.abs(v) < 10 ? 2 : 1;
+  return `${v > 0 ? "+" : ""}${v.toFixed(digits)}%`;
+}
+
+/**
+ * What this purchase does to the numbers you watch.
+ *
+ * Not a restatement of the description but a real before and after, taken by running the
+ * engine over a copy of the state with the purchase already in it. A skill that reads
+ * "+9% knowledge gain per level" becomes "KP/s 4.2K to 4.6K, +9.4%", which is a sentence
+ * you can act on. It stays after the purchase and then describes the level after this one.
+ */
+function renderGain(spec: NodeSpec): string {
+  const st = statusOf(spec);
+  if (st.maxed || !st.unlocked) return "";
+  const n = wantedCount(spec);
+  const p = previewOf(spec, n);
+  if (!p) return "";
+
+  const rows = READOUTS.map((r) => {
+    const a = r.read(p.before);
+    const b = r.read(p.after);
+    const g = gainOf(a, b);
+    if (!isFinite(g) || Math.abs(g) < 5e-6) return "";
+    const good = r.up ? g > 0 : g < 0;
+    return (
+      `<div class="tgrow"><span class="tgl">${r.label}</span>` +
+      `<span class="tgv">${esc(fmt(a))} <i>to</i> ${esc(fmt(b))}</span>` +
+      `<span class="tgd ${good ? "up" : "down"}">${gainText(g)}</span></div>`
+    );
+  }).filter(Boolean);
+
+  // a branch currency is the whole point of half the tree, so it gets its own line
+  for (const b of BRANCH_IDS) {
+    const a = p.before.curRate[b];
+    const c = p.after.curRate[b];
+    const g = gainOf(a, c);
+    if (!isFinite(g) || Math.abs(g) < 5e-6) continue;
+    rows.push(
+      `<div class="tgrow"><span class="tgl">${esc(BRANCH_BY_ID[b].curName)}/s</span>` +
+        `<span class="tgv">${esc(fmt(a))} <i>to</i> ${esc(fmt(c))}</span>` +
+        `<span class="tgd up">${gainText(g)}</span></div>`,
+    );
+  }
+
+  const what = spec.kind === "upgrade" ? "buying this" : n === 1 ? "one more" : `${fmt(n)} more`;
+  const body = rows.length
+    ? rows.join("")
+    : `<div class="tgnone">Nothing moves yet — this one needs the branch it feeds to be open.</div>`;
+  return `<div class="tgain"><div class="tgh">After ${esc(what)}</div>${body}</div>`;
+}
+
+/**
+ * What this purchase opens.
+ *
+ * The whole point of a tree is that one thing leads to another, and until now the panel
+ * only ever said what a node needed, never what it gave. Undiscovered follow-ups are
+ * listed but not named: knowing that three things are behind this door is the carrot,
+ * knowing what they are would be the spoiler.
+ */
+function renderOpens(id: string): string {
+  const opens = opensOf(id);
+  if (!opens.length) return "";
+  const shown = opens.slice(0, 10);
+  const rest = opens.length - shown.length;
+  return (
+    `<div class="tdopens"><span class="tdoh">opens</span>` +
+    shown
+      .map((c) => {
+        const spec = specById(c.id);
+        return !spec || discovered(spec)
+          ? `<button class="tdlink requires" data-goto="${c.id}">${esc(c.name)}</button>`
+          : `<span class="tdlink veil">???</span>`;
+      })
+      .join("") +
+    (rest > 0 ? `<span class="counthint">+${rest} more</span>` : "") +
+    `</div>`
+  );
+}
+
 function renderDetail(): void {
   const host = $("treedetail");
   const spec = picked ? specById(picked) : undefined;
   if (!spec) {
     host.innerHTML = `<p class="hint" style="margin:0">Pick a node above.</p>`;
+    return;
+  }
+
+  if (!discovered(spec)) {
+    host.innerHTML =
+      `<div class="tdh"><span class="tdn">???</span><span class="tdt">Undiscovered</span></div>` +
+      `<div class="tdd">Something is here. Buy whatever leads to it and it will introduce ` +
+      `itself — or switch the map to <b>Everything</b> to see the whole thing now.</div>`;
     return;
   }
 
@@ -522,6 +671,8 @@ function renderDetail(): void {
     `<span class="tdl">${esc(levelLine(spec, st.level, st.label))}</span></div>` +
     `<div class="tdd">${esc(spec.desc)}${extra}</div>` +
     (reason ? `<div class="tdreq">${esc(reason)}</div>` : "") +
+    renderGain(spec) +
+    renderOpens(spec.id) +
     renderConnections(spec.id) +
     `<div class="tdf">${actionsFor(spec)}</div>`;
 }
@@ -561,6 +712,7 @@ function buyLabel(node: TreeNodeSpec): { text: string; on: boolean } | null {
 function nodeTitle(node: TreeNodeSpec): string {
   const spec = specById(node.id);
   if (!spec) return node.name;
+  if (!discovered(spec)) return "Not discovered yet.\nBuy whatever leads here and this opens up.";
   const lines = [spec.name, spec.desc];
   if (spec.kind !== "anchor") {
     const st = statusOf(spec);

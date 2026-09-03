@@ -11,8 +11,12 @@ import type { PageId } from "../core/unlocks";
 
 const VIEW_KEY = "zero10x.view.v1";
 
+/** "earned" hides what you have not reached yet; "all" is the spoiler-friendly map. */
+export type Reveal = "earned" | "all";
+
 export interface ViewState {
   mode: "web" | "layers";
+  reveal: Reveal;
   open: string[];
   families: string[];
   density: Density;
@@ -23,6 +27,7 @@ export interface ViewState {
 
 const defaults: ViewState = {
   mode: "web",
+  reveal: "earned",
   open: [],
   families: [],
   density: "tight",
@@ -37,6 +42,7 @@ function load(): ViewState {
     const p = JSON.parse(raw) as Partial<ViewState>;
     return {
       mode: p.mode === "layers" ? "layers" : "web",
+      reveal: p.reveal === "all" ? "all" : "earned",
       open: Array.isArray(p.open) ? p.open : [...defaults.open],
       families: Array.isArray(p.families) ? p.families : [...defaults.families],
       density: p.density === "normal" ? "normal" : "tight",

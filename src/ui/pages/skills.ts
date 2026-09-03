@@ -32,6 +32,10 @@ const HTML = `
       <button class="minibtn" id="zoom-in" title="Zoom in" aria-label="Zoom in">+</button>
       <button class="minibtn" id="zoom-fit">Fit</button>
       <span class="zoomval num" id="zoom-val"></span>
+      <span class="modeswitch" id="tree-reveal" title="Show only what you have reached, or the whole map">
+        <button class="minibtn" data-reveal="earned">Earned</button>
+        <button class="minibtn" data-reveal="all">Everything</button>
+      </span>
       <span class="modeswitch" id="tree-density">
         <button class="minibtn" data-density="tight">Tight</button>
         <button class="minibtn" data-density="normal">Roomy</button>

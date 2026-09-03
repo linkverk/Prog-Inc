@@ -12,6 +12,9 @@ import { newGame } from "./state";
 export const SKILL_BY_ID: Record<string, Skill> = Object.fromEntries(SKILLS.map((s) => [s.id, s]));
 export const UPGRADE_BY_ID = Object.fromEntries(UPGRADES.map((u) => [u.id, u]));
 
+/** What one award is worth to all output, forever. The catalogue doubled, so this halved. */
+export const AWARD_BONUS = 0.006;
+
 export interface Derived {
   lps: number;
   rawLps: number;
@@ -56,7 +59,7 @@ export interface Derived {
 const zeroBranch = () => Object.fromEntries(BRANCH_IDS.map((b) => [b, 0])) as Record<BranchId, number>;
 const oneBranch = () => Object.fromEntries(BRANCH_IDS.map((b) => [b, 1])) as Record<BranchId, number>;
 
-export const D: Derived = {
+export const newDerived = (): Derived => ({
   lps: 0, rawLps: 0, mps: 0, kps: 0, click: 1, locValue: 0.4, kpRate: 0.006,
   genRate: {}, genCost: {}, costMult: 1,
   bugRate: 0.06, bugTol: 60, sev: 0.5, penalty: 1, clean: 0, debug: 15,
@@ -65,18 +68,27 @@ export const D: Derived = {
   hypeCap: 100, hypeDecay: 1, hypeMult: 1, release: 1, relPay: 0,
   bounty: 1, bountyValue: 0, kexp: 0, kexpMult: 1,
   passBonus: 0, passMult: 1, budgetMult: 1, at25: 0, repMult: 1,
-};
+});
+
+/** The live numbers. `derive` can fill any other `Derived`, which is what previews use. */
+export const D: Derived = newDerived();
 
 export let S: GameState = newGame();
 export function setState(next: GameState): void {
   S = next;
 }
 
-export const track = () => (S.track ? TRACK_BY_ID[S.track] : null);
-export const branchOpen = (b: BranchId) => !!S.skills["b_" + b];
+export const trackOf = (s: GameState) => (s.track ? TRACK_BY_ID[s.track] : null);
+export const branchOpenIn = (s: GameState, b: BranchId) => !!s.skills["b_" + b];
+export const perkOf = (s: GameState, id: string) => s.perks[id] ?? 0;
+export const masteryOf = (s: GameState, id: string) =>
+  s.mastery[id as keyof typeof s.mastery] ?? 0;
+
+export const track = () => trackOf(S);
+export const branchOpen = (b: BranchId) => branchOpenIn(S, b);
 export const skillLevel = (id: string) => S.skills[id] ?? 0;
-export const perk = (id: string) => S.perks[id] ?? 0;
-export const mastery = (id: string) => S.mastery[id as keyof typeof S.mastery] ?? 0;
+export const perk = (id: string) => perkOf(S, id);
+export const mastery = (id: string) => masteryOf(S, id);
 
 export function rankName(i: number): string {
   const t = track();
@@ -100,11 +112,19 @@ export function upgradeUnlocked(u: (typeof UPGRADES)[number]): boolean {
   return true;
 }
 
-export function recompute(): void {
+/**
+ * Fold every modifier a state carries into a `Derived`.
+ *
+ * Pure in the only way that matters: it reads `s`, writes `d`, and touches no module
+ * singleton. `recompute()` runs it over the live state; `core/preview.ts` runs it over
+ * a copy holding one extra purchase, which is how the tree can promise a number before
+ * anything is spent.
+ */
+export function derive(s: GameState, d: Derived): void {
   const acc: Acc = newAcc(GENERATORS.map((g) => g.id));
   let rankBase = 1.14;
 
-  const t = track();
+  const t = trackOf(s);
   if (t) {
     applyFx(acc, t.fx);
     if (t.sig === "kernel") rankBase = 1.32;
@@ -112,64 +132,64 @@ export function recompute(): void {
     if (t.sig === "scaling") acc.kexp += 0.4;
   }
 
-  for (const u of UPGRADES) if (S.upg[u.id]) applyFx(acc, u.fx);
-  for (const [id, lvl] of Object.entries(S.skills)) {
+  for (const u of UPGRADES) if (s.upg[u.id]) applyFx(acc, u.fx);
+  for (const [id, lvl] of Object.entries(s.skills)) {
     const sk = SKILL_BY_ID[id];
     if (sk && lvl > 0) applyFx(acc, effectOf(sk, lvl));
   }
 
   /* perks */
-  acc.click *= 2.5 ** perk("muscle");
-  acc.money *= 1.35 ** perk("clout");
-  acc.bugRate *= 0.85 ** perk("types");
-  acc.kp *= 1.4 ** perk("mentor");
-  acc.offCap += 3 * perk("sleep");
-  acc.offEff += 0.15 * perk("sleep");
-  const curiosity = 1.25 ** perk("curious");
+  acc.click *= 2.5 ** perkOf(s, "muscle");
+  acc.money *= 1.35 ** perkOf(s, "clout");
+  acc.bugRate *= 0.85 ** perkOf(s, "types");
+  acc.kp *= 1.4 ** perkOf(s, "mentor");
+  acc.offCap += 3 * perkOf(s, "sleep");
+  acc.offEff += 0.15 * perkOf(s, "sleep");
+  const curiosity = 1.25 ** perkOf(s, "curious");
   for (const b of BRANCH_IDS) acc.cur[b] *= curiosity;
 
   /* mastery: deep in your own track, lighter everywhere */
-  const totalMastery = Object.values(S.mastery).reduce((a, b) => a + (b ?? 0), 0);
-  acc.all *= 1 + 0.03 * totalMastery * (1 + 0.2 * perk("transfer"));
-  if (S.track) acc.all *= 1 + 0.3 * mastery(S.track);
+  const totalMastery = Object.values(s.mastery).reduce((a, b) => a + (b ?? 0), 0);
+  acc.all *= 1 + 0.03 * totalMastery * (1 + 0.2 * perkOf(s, "transfer"));
+  if (s.track) acc.all *= 1 + 0.3 * masteryOf(s, s.track);
 
   /* awards, rank, reputation */
-  acc.all *= 1 + 0.01 * Object.keys(S.ach).length;
-  acc.all *= rankBase ** S.rank;
-  acc.money *= 1.7 ** S.rank;
-  const starWorth = 0.05 * (1 + 0.4 * perk("compound"));
-  acc.all *= 1 + S.repLife * starWorth;
-  acc.money *= 1 + S.repLife * starWorth * 0.6;
+  acc.all *= 1 + AWARD_BONUS * Object.keys(s.ach).length;
+  acc.all *= rankBase ** s.rank;
+  acc.money *= 1.7 ** s.rank;
+  const starWorth = 0.05 * (1 + 0.4 * perkOf(s, "compound"));
+  acc.all *= 1 + s.repLife * starWorth;
+  acc.money *= 1 + s.repLife * starWorth * 0.6;
 
   /* specialisation scaling */
-  D.hypeCap = acc.hypeCap;
-  D.hypeDecay = acc.hypeDecay;
-  D.release = acc.release;
-  D.bounty = acc.bounty;
-  D.hypeMult = 1;
+  d.hypeCap = acc.hypeCap;
+  d.hypeDecay = acc.hypeDecay;
+  d.release = acc.release;
+  d.bounty = acc.bounty;
+  d.hypeMult = 1;
   if (t?.sig === "hype") {
-    D.hypeMult = 1 + 9 * Math.min(1, Math.max(0, S.hype / acc.hypeCap));
-    acc.all *= D.hypeMult;
+    d.hypeMult = 1 + 9 * Math.min(1, Math.max(0, s.hype / acc.hypeCap));
+    acc.all *= d.hypeMult;
   }
-  D.kexp = acc.kexp;
-  D.kexpMult = acc.kexp > 0 ? 1 + acc.kexp * Math.log10(1 + Math.max(0, S.kp)) : 1;
-  acc.all *= D.kexpMult;
+  d.kexp = acc.kexp;
+  d.kexpMult = acc.kexp > 0 ? 1 + acc.kexp * Math.log10(1 + Math.max(0, s.kp)) : 1;
+  acc.all *= d.kexpMult;
 
-  D.passBonus = acc.pass;
-  D.passMult = acc.pass > 0 ? (1 + acc.pass) ** Object.keys(S.upg).length : 1;
-  acc.all *= D.passMult;
+  d.passBonus = acc.pass;
+  d.passMult = acc.pass > 0 ? (1 + acc.pass) ** Object.keys(s.upg).length : 1;
+  acc.all *= d.passMult;
 
-  D.at25 = 0;
-  D.budgetMult = 1;
+  d.at25 = 0;
+  d.budgetMult = 1;
   if (t?.sig === "budget") {
-    for (const g of GENERATORS) if ((S.gens[g.id] ?? 0) >= 25) D.at25++;
-    D.budgetMult = 1 + 0.05 * D.at25;
-    acc.all *= D.budgetMult;
+    for (const g of GENERATORS) if ((s.gens[g.id] ?? 0) >= 25) d.at25++;
+    d.budgetMult = 1 + 0.05 * d.at25;
+    acc.all *= d.budgetMult;
   }
 
   /* buffs */
   const now = Date.now();
-  for (const b of S.buffs) {
+  for (const b of s.buffs) {
     if (b.until <= now) continue;
     if (b.kind === "money") acc.money *= b.mult;
     else acc.all *= b.mult;
@@ -177,55 +197,60 @@ export function recompute(): void {
 
   /* generators */
   let raw = 0;
-  D.costMult = acc.costMult;
+  d.costMult = acc.costMult;
   for (const g of GENERATORS) {
-    const owned = S.gens[g.id] ?? 0;
+    const owned = s.gens[g.id] ?? 0;
     const rate = g.rate * acc.genMult[g.id];
-    D.genRate[g.id] = rate;
-    D.genCost[g.id] = g.cost * acc.costMult * GROWTH ** owned;
+    d.genRate[g.id] = rate;
+    d.genCost[g.id] = g.cost * acc.costMult * GROWTH ** owned;
     raw += owned * rate;
     if (g.clean) acc.clean += g.clean * Math.min(owned, 200);
   }
   raw *= acc.all;
 
-  D.bugRate = 0.06 * acc.bugRate;
-  D.clean = acc.clean;
-  D.sev = 0.5 * acc.sev;
-  D.bugTol = 60 + raw * 9;
-  D.penalty = D.sev <= 0 ? 1 : 1 - D.sev * (S.bugs / (S.bugs + D.bugTol));
+  d.bugRate = 0.06 * acc.bugRate;
+  d.clean = acc.clean;
+  d.sev = 0.5 * acc.sev;
+  d.bugTol = 60 + raw * 9;
+  d.penalty = d.sev <= 0 ? 1 : 1 - d.sev * (s.bugs / (s.bugs + d.bugTol));
 
-  D.rawLps = raw;
-  D.lps = raw * D.penalty;
-  D.all = acc.all;
-  D.moneyM = acc.money;
-  D.click = 1 * acc.click * acc.all + acc.clickPct * D.lps;
-  D.locValue = 0.4 * acc.money;
-  D.kpRate = 0.006 * acc.kp;
-  D.mps = D.lps * D.locValue;
-  D.kps = D.lps * D.kpRate;
-  D.debug = Math.max(15, D.lps * 4) * acc.debug;
-  D.offEff = Math.min(1, acc.offEff);
-  D.offCap = acc.offCap;
-  D.luck = acc.luck;
-  D.repMult = acc.rep;
-  D.bountyValue = D.locValue * 140 * acc.bounty;
-  D.relPay = S.relLoc * D.locValue * 1.5 * acc.release;
-  D.curMult = acc.cur;
+  d.rawLps = raw;
+  d.lps = raw * d.penalty;
+  d.all = acc.all;
+  d.moneyM = acc.money;
+  d.click = 1 * acc.click * acc.all + acc.clickPct * d.lps;
+  d.locValue = 0.4 * acc.money;
+  d.kpRate = 0.006 * acc.kp;
+  d.mps = d.lps * d.locValue;
+  d.kps = d.lps * d.kpRate;
+  d.debug = Math.max(15, d.lps * 4) * acc.debug;
+  d.offEff = Math.min(1, acc.offEff);
+  d.offCap = acc.offCap;
+  d.luck = acc.luck;
+  d.repMult = acc.rep;
+  d.bountyValue = d.locValue * 140 * acc.bounty;
+  d.relPay = s.relLoc * d.locValue * 1.5 * acc.release;
+  d.curMult = acc.cur;
 
   /* branch currency rates (per second; event-driven faucets are added on the event) */
-  const machines = MACHINE_IDS.reduce((a, id) => a + (S.gens[id] ?? 0), 0);
-  const oss = S.gens.oss ?? 0;
+  const machines = MACHINE_IDS.reduce((a, id) => a + (s.gens[id] ?? 0), 0);
+  const oss = s.gens.oss ?? 0;
   const rates = zeroBranch();
   rates.systems = 0.08 * Math.sqrt(1 + machines);
-  rates.craft = 0.6 * Math.log10(1 + D.rawLps * D.clean);
-  rates.business = 0.5 * Math.log10(1 + D.mps);
-  rates.data = 0.5 * Math.log10(1 + D.lps);
-  rates.security = 0.6 * Math.log10(1 + D.rawLps * D.bugRate);
+  rates.craft = 0.6 * Math.log10(1 + d.rawLps * d.clean);
+  rates.business = 0.5 * Math.log10(1 + d.mps);
+  rates.data = 0.5 * Math.log10(1 + d.lps);
+  rates.security = 0.6 * Math.log10(1 + d.rawLps * d.bugRate);
   rates.community = 0.4 * Math.log10(1 + oss);
   for (const b of BRANCH_IDS) {
-    rates[b] = branchOpen(b) ? rates[b] * D.curMult[b] : 0;
+    rates[b] = branchOpenIn(s, b) ? rates[b] * d.curMult[b] : 0;
   }
-  D.curRate = rates;
+  d.curRate = rates;
+}
+
+/** Fold the live state into the live `Derived`. */
+export function recompute(): void {
+  derive(S, D);
 }
 
 /* ---------------------------------------------------------------- *

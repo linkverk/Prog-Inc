@@ -2,6 +2,7 @@ import type { GameState, TrackId } from "./types";
 import { emptyBranchRecord, BRANCH_IDS } from "../data/branches";
 import { RANKS } from "../data/ranks";
 import { GENERATORS } from "../data/generators";
+import { SKILLS } from "../data/skills.generated";
 
 export const SAVE_VERSION = 3;
 
@@ -52,6 +53,20 @@ export function migrate(raw: Partial<GameState>): GameState {
   // drop unknown generator ids so a renamed generator cannot corrupt production
   const known = new Set(GENERATORS.map((g) => g.id));
   for (const id of Object.keys(s.gens)) if (!known.has(id)) delete s.gens[id];
+
+  /*
+   * A skill id encodes its tier, so deepening a branch renames its capstones: the three
+   * that used to end tier 5 now end tier 7. The save is otherwise the same shape, so
+   * rather than bump the version and wipe the tree, move the levels to where they went
+   * and drop whatever is genuinely gone.
+   */
+  const skillIds = new Set(SKILLS.map((k) => k.id));
+  for (const id of Object.keys(s.skills)) {
+    if (skillIds.has(id)) continue;
+    const moved = id.replace(/^([a-z]+)_5_/, "$1_7_");
+    if (moved !== id && skillIds.has(moved)) s.skills[moved] = s.skills[id];
+    delete s.skills[id];
+  }
 
   s.rank = Math.max(0, Math.min(RANKS.length - 1, s.rank ?? 0));
   if (typeof s.started !== "number") s.started = Date.now();

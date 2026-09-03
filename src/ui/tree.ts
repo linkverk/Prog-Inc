@@ -89,6 +89,8 @@ export interface NodeStatus {
   maxed: boolean;
   /** the small label in the top-right of the node */
   label: string;
+  /** too far ahead to have been discovered: draw the shape, withhold the name */
+  veiled?: boolean;
   /** progress bar, 0..1 */
   fill: number;
 }
@@ -588,9 +590,12 @@ export function paintTree(view: TreeView, opts: PaintOpts): void {
       (!st.unlocked ? " locked" : st.ready ? " ready" : "") +
       (n.spec.id === opts.selected ? " sel" : "") +
       (deps.has(n.spec.id) ? " dep" : "") +
+      (st.veiled ? " veiled" : "") +
       (opts.highlight ? (opts.highlight.has(n.spec.id) ? " hit" : " dim") : "");
     elm.setAttribute("aria-pressed", String(n.spec.id === opts.selected));
 
+    // the name is written once at build time, so hiding it has to happen on every paint
+    (elm.querySelector(".tn") as HTMLElement).textContent = st.veiled ? "???" : n.spec.name;
     (elm.querySelector(".tl") as HTMLElement).textContent = st.label;
     const filled = Math.max(0, Math.min(1, st.fill)) * 100;
     (elm.querySelector(".tb>b") as HTMLElement).style.width = `${filled.toFixed(0)}%`;

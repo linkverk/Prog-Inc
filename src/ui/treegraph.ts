@@ -12,6 +12,7 @@
  */
 
 import type { BranchId } from "../core/types";
+import type { Reveal } from "./viewstore";
 import type { Density, TreeEdge, WebNode } from "./tree";
 import { setDensity } from "./tree";
 import { persistView, view, viewIsFresh } from "./viewstore";
@@ -143,6 +144,8 @@ function build(): void {
   ladder("output", "Output", "Raw lines per second, bought outright.", shop.id);
   ladder("income", "Income", "What a line is worth when it lands.", shop.id);
   ladder("knowledge", "Knowledge", "How fast lines turn into knowledge.", shop.id);
+  ladder("offline", "Offline", "What the desk earns while you are not at it.", shop.id);
+  ladder("luck", "Luck", "How often an opportunity finds you.", shop.id);
 
   const tap = (key: string, name: string, desc: string, family: string): void => {
     const node = add(anchorSpec(key, name, desc, "Tap"), shop.id);
@@ -256,6 +259,13 @@ export function setMode(next: "web" | "layers"): void {
   persist();
 }
 
+export const reveal = (): Reveal => view.reveal;
+
+export function setReveal(next: Reveal): void {
+  view.reveal = next;
+  persist();
+}
+
 export const density = (): Density => view.density;
 
 export function setDensityMode(next: Density): void {
@@ -334,6 +344,27 @@ export function connectionsOf(id: string): Connection[] {
       out.push({ id: e.from, family: e.family, name: specOf.get(e.from)?.name ?? e.from, outgoing: false });
     }
   }
+  return out;
+}
+
+/**
+ * What buying this node opens up.
+ *
+ * `connectionsOf` deliberately drops parent links because you can see them on the canvas —
+ * but the parent link *is* the unlock, and the detail panel is the one place where the
+ * answer to "what does this get me next?" has to be spelled out. Children first, then any
+ * node that names this one as a second prerequisite.
+ */
+export function opensOf(id: string): Connection[] {
+  const seen = new Set<string>();
+  const out: Connection[] = [];
+  const take = (to: string, family: string): void => {
+    if (seen.has(to) || !specOf.has(to)) return;
+    seen.add(to);
+    out.push({ id: to, family, name: specOf.get(to)!.name, outgoing: true });
+  };
+  for (const child of kids.get(id) ?? []) take(child, "requires");
+  for (const e of edges) if (e.family === "requires" && e.from === id) take(e.to, "requires");
   return out;
 }
 

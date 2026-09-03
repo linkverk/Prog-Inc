@@ -9,7 +9,7 @@
     "runtime": null
   },
   "build": {
-    "buildCommand": "cd \"D:/GitHub/Prog Inc\" && npm run build 2>&1 | grep -c \"built in\"; git status --short | grep -v obsidian | cut -c1-60; M=\"C:/Users/Gebruiker/.claude/projects/D--GitHub-Prog-Inc/memory\"; cat > \"$M/skills-web-necklace-layout.md\" <<'EOF'\n---\nname: skills-web-necklace-layout\ndescription: 2026-09-04 Skills page rewrite — necklace-of-clusters radial layout, buy-on-node, measurement harness; what was tried and rejected\nmetadata:\n  type: project\n---\n\nOn 2026-09-04 the Skills web was rebuilt: open clusters (hubs, branch gateways, taps) lay out\non their own and sit on one necklace around You; leaf-only hubs are grids; every purchasable\nnode has a buy button driven by `S.bulk` (`×1/×10/Max` in the zoombar, `B`/`Shift+B`); the\ndetail panel lives in the left column. Left uncommitted for the user (code + PLAN/README/wiki/\nTASKS). Measured: Craft open 2219 → 1470 px, fresh 1143 → 1555 (Foundation is a real circle\nnow), zero overlaps both densities.\n\n**Why:** user asked for a readable, dense, interactive map with buying on it; chose\n\"buy on node\" + \"compact radial\" over clusters-as-blocks or Layers-as-default.\n\n**How to apply:** do not nest cluster circles inside parent circles — tried first, every\nlevel doubled the map (Craft 3051 px). Axis-aligned boxes need diagonal clearance between\nrings (~148 px per tier), so a branch's radial depth is inherent; compactness comes from\npacking angle by `asin(footprint/r)` and from the necklace. Measurement script pattern:\nscratch `measure.cjs` (playwright-core from npx cache + chromium_headless_shell-1223,\n`addInitScript` seeds `zero10x.save.v3` and `zero10x.view.v1`, reads `.treeinner` size and\nnode boxes for overlaps). Open knobs: shape table in `treegraph.ts build()` (Career is a fan),\nunaffordable button shows dim price (`buyLabel` in `treetab.ts`). See [[multipage-refactor-in-progress]].\nEOF\necho \"- [Skills web necklace layout](skills-web-necklace-layout.md) — 2026-09-04 radial rewrite + buy-on-node; rejected approaches and measurement harness\" >> \"$M/MEMORY.md\"\ncat >> \"C:/Users/Gebruiker/.claude/plans/improve-skills-tab-for-wiggly-magpie.md\" <<'EOF'\n\n## Status — 2026-09-04 (complete, uncommitted)\n\nImplemented steps 1–5 with one design change: nested cluster circles (as planned) doubled\nthe map per level, so open clusters are flattened onto **one necklace** around You in tree\norder (see wiki overview \"Density and size\" for the numbers). Buy-on-node, bulk switch,\n`B`/`Shift+B`, tooltips, side detail panel, Layers-mode goTo fix. Build green, stats unchanged.\nEOF\necho done",
+    "buildCommand": "cd \"D:/GitHub/Prog Inc\" && python - <<'PYEOF'\n# -*- coding: utf-8 -*-\nimport io\nentry = (\nu\"- 2026-09-04 \\u2014 \\u043a\\u043e\\u043d\\u0442\\u0435\\u043d\\u0442 \\u0443\\u0434\\u0432\\u043e\\u0435\\u043d \\u0438 \\u0434\\u043e\\u0431\\u0430\\u0432\\u043b\\u0435\\u043d\\u0430 \\u0432\\u0438\\u0434\\u0438\\u043c\\u0430\\u044f \\u043f\\u0440\\u043e\\u0433\\u0440\\u0435\\u0441\\u0441\\u0438\\u044f \\u043f\\u043e\\u0441\\u043b\\u0435 \\u043a\\u0430\\u0436\\u0434\\u043e\\u0439 \\u043f\\u043e\\u043a\\u0443\\u043f\\u043a\\u0438. \"\nu\"\\u041a\\u043e\\u043d\\u0442\\u0435\\u043d\\u0442: 300\\u2192600 \\u0441\\u043a\\u0438\\u043b\\u043b\\u043e\\u0432 (\\u0442\\u0438\\u0440\\u044b 6 \\u0438 7, \\u0441\\u0430\\u0431-\\u0448\\u043b\\u044e\\u0437\\u044b S4\\u2013S6, \\u0433\\u043b\\u043e\\u0431\\u0430\\u043b\\u044c\\u043d\\u044b\\u0435 \\u0448\\u043b\\u044e\\u0437\\u044b g4\\u2013g7, 4120 \\u0443\\u0440\\u043e\\u0432\\u043d\\u0435\\u0439), \"\nu\"450\\u2192902 \\u0430\\u043f\\u0433\\u0440\\u0435\\u0439\\u0434\\u0430 (\\u0442\\u0440\\u0435\\u0442\\u0438\\u0439 \\u0442\\u0438\\u0440 \\u0443 \\u0432\\u0441\\u0435\\u0445 \\u043b\\u0435\\u0441\\u0442\\u043d\\u0438\\u0446, \\u043d\\u043e\\u0432\\u044b\\u0435 \\u0441\\u0435\\u043c\\u0435\\u0439\\u0441\\u0442\\u0432\\u0430 offline \\u0438 luck), 12\\u219220 \\u0442\\u0443\\u043b\\u043e\\u0432, 39\\u219294 \\u043d\\u0430\\u0433\\u0440\\u0430\\u0434\\u044b; \"\nu\"JITTER \\u0440\\u0430\\u0441\\u0448\\u0438\\u0440\\u0435\\u043d \\u0434\\u043e 6 \\u0437\\u043d\\u0430\\u0447\\u0435\\u043d\\u0438\\u0439 \\u2014 \\u0438\\u043d\\u0430\\u0447\\u0435 \\u043f\\u0440\\u0438 12 \\u0438\\u043c\\u0435\\u043d\\u0430\\u0445 \\u0432 \\u0442\\u0438\\u0440\\u0435 \\u043e\\u043f\\u0438\\u0441\\u0430\\u043d\\u0438\\u044f \\u0434\\u0443\\u0431\\u043b\\u0438\\u0440\\u0443\\u044e\\u0442\\u0441\\u044f \\u0438 integrity-\\u043f\\u0440\\u043e\\u0432\\u0435\\u0440\\u043a\\u0430 \\u043f\\u0430\\u0434\\u0430\\u0435\\u0442. \"\nu\"\\u041f\\u0440\\u043e\\u0433\\u0440\\u0435\\u0441\\u0441\\u0438\\u044f: src/core/reveal.ts \\u2014 \\u0443\\u0437\\u0435\\u043b \\u043f\\u043e\\u043b\\u0443\\u0447\\u0430\\u0435\\u0442 \\u0438\\u043c\\u044f, \\u043a\\u043e\\u0433\\u0434\\u0430 \\u043a\\u0443\\u043f\\u043b\\u0435\\u043d\\u044b \\u0435\\u0433\\u043e \\u043f\\u0440\\u0435\\u0434\\u0448\\u0435\\u0441\\u0442\\u0432\\u0435\\u043d\\u043d\\u0438\\u043a\\u0438 (\\u0448\\u0430\\u0433 \\u0432\\u043f\\u0435\\u0440\\u0451\\u0434, \\u043d\\u0435 \\u0431\\u043e\\u043b\\u044c\\u0448\\u0435): 1\\u21929\\u219222\\u219235 \\u0438\\u043c\\u0451\\u043d \"\nu\"\\u043d\\u0430 \\u0441\\u0432\\u0435\\u0436\\u0435\\u043c \\u0441\\u0435\\u0439\\u0432\\u0435; \\u043d\\u0435\\u043e\\u0442\\u043a\\u0440\\u044b\\u0442\\u044b\\u0439 \\u0443\\u0437\\u0435\\u043b \\u043e\\u0441\\u0442\\u0430\\u0451\\u0442\\u0441\\u044f \\u043d\\u0430 \\u043c\\u0435\\u0441\\u0442\\u0435 \\u043a\\u0430\\u043a ??? (NodeStatus.veiled), \\u043f\\u043e\\u0438\\u0441\\u043a \\u0435\\u0433\\u043e \\u043d\\u0435 \\u043d\\u0430\\u0445\\u043e\\u0434\\u0438\\u0442, \\u043f\\u0435\\u0440\\u0435\\u043a\\u043b\\u044e\\u0447\\u0430\\u0442\\u0435\\u043b\\u044c Earned/Everything \\u0432 zero10x.view.v1. \"\nu\"src/core/preview.ts \\u2014 \\u043f\\u0430\\u043d\\u0435\\u043b\\u044c \\u043f\\u043e\\u043a\\u0430\\u0437\\u044b\\u0432\\u0430\\u0435\\u0442 \\u0440\\u0435\\u0430\\u043b\\u044c\\u043d\\u044b\\u0435 \\u0434\\u043e/\\u043f\\u043e\\u0441\\u043b\\u0435 \\u043f\\u043e \\u0432\\u0441\\u0435\\u043c \\u0437\\u0430\\u0442\\u0440\\u043e\\u043d\\u0443\\u0442\\u044b\\u043c \\u043f\\u043e\\u043a\\u0430\\u0437\\u0430\\u0442\\u0435\\u043b\\u044f\\u043c \\u0438 \\u0441\\u0442\\u0440\\u043e\\u043a\\u0443 opens; \"\nu\"\\u0434\\u043b\\u044f \\u044d\\u0442\\u043e\\u0433\\u043e recompute() \\u0440\\u0430\\u0437\\u0434\\u0435\\u043b\\u0451\\u043d \\u043d\\u0430 \\u0447\\u0438\\u0441\\u0442\\u044b\\u0439 derive(state, out) \\u0438 \\u043e\\u0431\\u0451\\u0440\\u0442\\u043a\\u0443 \\u2014 \\u0432\\u0441\\u0435 37 \\u043f\\u043e\\u043b\\u0435\\u0439 Derived \\u0441\\u043e\\u0432\\u043f\\u0430\\u043b\\u0438 \\u0434\\u043e \\u0438 \\u043f\\u043e\\u0441\\u043b\\u0435 \\u0440\\u0435\\u0444\\u0430\\u043a\\u0442\\u043e\\u0440\\u0438\\u043d\\u0433\\u0430, \"\nu\"\\u043f\\u0440\\u0435\\u0434\\u0441\\u043a\\u0430\\u0437\\u0430\\u043d\\u0438\\u0435 \\u0441\\u043e\\u0432\\u043f\\u0430\\u0434\\u0430\\u0435\\u0442 \\u0441 \\u0444\\u0430\\u043a\\u0442\\u0438\\u0447\\u0435\\u0441\\u043a\\u043e\\u0439 \\u043f\\u043e\\u043a\\u0443\\u043f\\u043a\\u043e\\u0439 \\u0434\\u043e 1e-9 \\u043d\\u0430 \\u0448\\u0435\\u0441\\u0442\\u0438 \\u0441\\u043b\\u0443\\u0447\\u0430\\u044f\\u0445. \"\nu\"\\u041f\\u043e\\u043b\\u043e\\u0441\\u044b \\u043f\\u0440\\u043e\\u0433\\u0440\\u0435\\u0441\\u0441\\u0430: \\u043f\\u043e \\u0432\\u0435\\u0442\\u043a\\u0430\\u043c \\u0432 \\u0440\\u0435\\u0439\\u043b\\u0435 Skills, \\u043f\\u043e \\u0442\\u0438\\u0440\\u0430\\u043c \\u043d\\u0430 \\u0441\\u0442\\u0440\\u0430\\u043d\\u0438\\u0446\\u0435 Tools, \\u043f\\u043e \\u043a\\u0430\\u0436\\u0434\\u043e\\u0439 \\u0441\\u0447\\u0451\\u0442\\u043d\\u043e\\u0439 \\u043d\\u0430\\u0433\\u0440\\u0430\\u0434\\u0435 \\u043d\\u0430 Awards (\\u0441\\u0435\\u043a\\u0446\\u0438\\u0438, 5 \\u0441\\u043a\\u0440\\u044b\\u0442\\u044b\\u0445). \"\nu\"\\u0411\\u0430\\u043b\\u0430\\u043d\\u0441: AWARD_BONUS 1% \\u2192 0.6%, \\u0438\\u043d\\u0430\\u0447\\u0435 \\u0443\\u0434\\u0432\\u043e\\u0435\\u043d\\u0438\\u0435 \\u043a\\u0430\\u0442\\u0430\\u043b\\u043e\\u0433\\u0430 \\u0442\\u0438\\u0445\\u043e \\u043f\\u0440\\u0435\\u0432\\u0440\\u0430\\u0442\\u0438\\u043b\\u043e \\u0431\\u044b +39% \\u0432 +90%. \"\nu\"treemodel.branchRows/globalRows \\u043f\\u0435\\u0440\\u0435\\u0432\\u0435\\u0434\\u0435\\u043d\\u044b \\u043d\\u0430 \\u0434\\u0430\\u043d\\u043d\\u044b\\u0435 (\\u0431\\u044b\\u043b\\u0438 \\u0437\\u0430\\u0445\\u0430\\u0440\\u0434\\u043a\\u043e\\u0436\\u0435\\u043d\\u044b 4 \\u0448\\u043b\\u044e\\u0437\\u0430 \\u0438 5 \\u0442\\u0438\\u0440\\u043e\\u0432). \"\nu\"migrate() \\u043f\\u0435\\u0440\\u0435\\u043d\\u043e\\u0441\\u0438\\u0442 \\u0441\\u0442\\u0430\\u0440\\u044b\\u0435 id \\u043a\\u0430\\u043f\\u0441\\u0442\\u043e\\u0443\\u043d\\u043e\\u0432 _5_ \\u2192 _7_ \\u0438 \\u0447\\u0438\\u0441\\u0442\\u0438\\u0442 \\u0441\\u0438\\u0440\\u043e\\u0442; \\u0444\\u043e\\u0440\\u043c\\u0430\\u0442 \\u0441\\u0435\\u0439\\u0432\\u0430 \\u043e\\u0441\\u0442\\u0430\\u043b\\u0441\\u044f v3, \\u043b\\u0435\\u0433\\u0430\\u0441\\u0438-\\u0441\\u0435\\u0439\\u0432 \\u043f\\u0440\\u043e\\u0432\\u0435\\u0440\\u0435\\u043d headless. \"\nu\"1564 \\u0443\\u0437\\u043b\\u0430 \\u043d\\u0430 \\u043a\\u0430\\u0440\\u0442\\u0435. npm run stats \\u0442\\u0435\\u043f\\u0435\\u0440\\u044c \\u043f\\u0435\\u0447\\u0430\\u0442\\u0430\\u0435\\u0442 \\u0442\\u0430\\u043a\\u0436\\u0435 TOOLS \\u0438 AWARDS; PLAN.md \\u00a73\\u2013\\u00a77, README, wiki overview \\u0438 progressive-reveal \\u0441\\u0438\\u043d\\u0445\\u0440\\u043e\\u043d\\u0438\\u0437\\u0438\\u0440\\u043e\\u0432\\u0430\\u043d\\u044b \\u2014 pending\\n\"\n)\nwith io.open(\"TASKS.md\", \"a\", encoding=\"utf-8\", newline=\"\\n\") as f:\n    f.write(entry)\nprint(\"TASKS.md appended\")\nPYEOF\nnpm run build 2>&1 | tail -6",
     "testCommand": null,
     "lintCommand": null,
     "devCommand": null,
@@ -35,38 +35,44 @@
   "hotPaths": [
     {
       "path": "src\\ui\\treemodel.ts",
-      "accessCount": 30,
-      "lastAccessed": 1788474541926,
+      "accessCount": 35,
+      "lastAccessed": 1788478053055,
       "type": "file"
     },
     {
       "path": "src\\ui\\tree.ts",
-      "accessCount": 30,
-      "lastAccessed": 1788475322105,
+      "accessCount": 33,
+      "lastAccessed": 1788477063165,
       "type": "file"
     },
     {
       "path": "src\\ui\\treetab.ts",
-      "accessCount": 23,
-      "lastAccessed": 1788475912080,
+      "accessCount": 26,
+      "lastAccessed": 1788477049882,
       "type": "file"
     },
     {
       "path": "src\\ui\\treegraph.ts",
-      "accessCount": 21,
-      "lastAccessed": 1788475402894,
-      "type": "file"
-    },
-    {
-      "path": "src\\main.ts",
-      "accessCount": 14,
-      "lastAccessed": 1788468737195,
+      "accessCount": 23,
+      "lastAccessed": 1788477041686,
       "type": "file"
     },
     {
       "path": "PLAN.md",
-      "accessCount": 14,
-      "lastAccessed": 1788473991249,
+      "accessCount": 17,
+      "lastAccessed": 1788476822442,
+      "type": "file"
+    },
+    {
+      "path": "src",
+      "accessCount": 17,
+      "lastAccessed": 1788478205096,
+      "type": "directory"
+    },
+    {
+      "path": "src\\main.ts",
+      "accessCount": 16,
+      "lastAccessed": 1788476844230,
       "type": "file"
     },
     {
@@ -77,15 +83,21 @@
     },
     {
       "path": "src\\ui\\shell.ts",
-      "accessCount": 10,
-      "lastAccessed": 1788468738738,
+      "accessCount": 11,
+      "lastAccessed": 1788476841359,
       "type": "file"
     },
     {
-      "path": "src",
+      "path": "src\\core\\engine.ts",
+      "accessCount": 11,
+      "lastAccessed": 1788477147000,
+      "type": "file"
+    },
+    {
+      "path": "src\\core\\types.ts",
       "accessCount": 9,
-      "lastAccessed": 1788475928436,
-      "type": "directory"
+      "lastAccessed": 1788476811965,
+      "type": "file"
     },
     {
       "path": "",
@@ -106,27 +118,21 @@
       "type": "file"
     },
     {
-      "path": "src\\data\\branches.ts",
-      "accessCount": 6,
-      "lastAccessed": 1788468730630,
-      "type": "file"
-    },
-    {
       "path": "src\\core\\actions.ts",
-      "accessCount": 6,
-      "lastAccessed": 1788468747511,
+      "accessCount": 7,
+      "lastAccessed": 1788476820230,
       "type": "file"
     },
     {
-      "path": "src\\core\\types.ts",
-      "accessCount": 6,
-      "lastAccessed": 1788468747682,
+      "path": "src\\data\\branches.ts",
+      "accessCount": 7,
+      "lastAccessed": 1788476827180,
       "type": "file"
     },
     {
-      "path": "src\\core\\engine.ts",
+      "path": "src\\core\\state.ts",
       "accessCount": 6,
-      "lastAccessed": 1788468755123,
+      "lastAccessed": 1788476777828,
       "type": "file"
     },
     {
@@ -142,15 +148,27 @@
       "type": "file"
     },
     {
-      "path": "src\\core\\state.ts",
-      "accessCount": 5,
-      "lastAccessed": 1788468757242,
-      "type": "file"
-    },
-    {
       "path": "src\\ui\\dom.ts",
       "accessCount": 5,
       "lastAccessed": 1788474553585,
+      "type": "file"
+    },
+    {
+      "path": "src\\core\\save.ts",
+      "accessCount": 5,
+      "lastAccessed": 1788476807869,
+      "type": "file"
+    },
+    {
+      "path": "src\\core\\effects.ts",
+      "accessCount": 5,
+      "lastAccessed": 1788477027547,
+      "type": "file"
+    },
+    {
+      "path": "src\\data\\generators.ts",
+      "accessCount": 5,
+      "lastAccessed": 1788477987117,
       "type": "file"
     },
     {
@@ -190,21 +208,15 @@
       "type": "file"
     },
     {
-      "path": "src\\core\\save.ts",
-      "accessCount": 4,
-      "lastAccessed": 1788468758605,
-      "type": "file"
-    },
-    {
       "path": "src\\styles.css",
       "accessCount": 4,
       "lastAccessed": 1788468768342,
       "type": "file"
     },
     {
-      "path": "src\\data\\generators.ts",
+      "path": "scripts\\gen-content.mjs",
       "accessCount": 4,
-      "lastAccessed": 1788468769315,
+      "lastAccessed": 1788477946893,
       "type": "file"
     },
     {
@@ -268,12 +280,6 @@
       "type": "file"
     },
     {
-      "path": "src\\core\\effects.ts",
-      "accessCount": 2,
-      "lastAccessed": 1788467286204,
-      "type": "file"
-    },
-    {
       "path": "src\\core\\bus.ts",
       "accessCount": 2,
       "lastAccessed": 1788468756291,
@@ -283,12 +289,6 @@
       "path": "tsconfig.json",
       "accessCount": 1,
       "lastAccessed": 1788455525314,
-      "type": "file"
-    },
-    {
-      "path": "scripts\\gen-content.mjs",
-      "accessCount": 1,
-      "lastAccessed": 1788458173649,
       "type": "file"
     },
     {

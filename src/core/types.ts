@@ -180,6 +180,11 @@ export interface Achievement {
   name: string;
   desc: string;
   test: (s: GameState) => boolean;
+  /** [where you are, what it takes] — the progress bar on the Awards page. Presentation
+   *  only: `test` stays the authority on whether the award is earned. */
+  progress?: (s: GameState) => [number, number];
+  /** name and description stay hidden until it is earned */
+  secret?: boolean;
 }
 
 export interface Buff {

@@ -9,7 +9,7 @@ is the intent and the code is the bug.
 
 | | v1 (single-file artifact) | v2 (this project) |
 |---|---|---|
-| Skills | 33 core + 7 track nodes, one currency (KP) | **300 skills across 8 branches**, each branch with its **own currency** |
+| Skills | 33 core + 7 track nodes, one currency (KP) | **600 skills across 8 branches**, each branch with its **own currency** |
 | Skill purchases | one click, done | every skill has **upgrade levels** (3–12), except gateways |
 | Gateways | none | **36 one-time gateway skills** that open paths and can never be upgraded |
 | Shop upgrades | 44 | **450** (10×) |
@@ -55,15 +55,15 @@ which is the point.
 
 ---
 
-## 3. Skill catalogue — 300 skills
+## 3. Skill catalogue — 600 skills
 
 ```
-  4  global gateways          one-time, KP,  no upgrades
+  8  global gateways          one-time, KP,  no upgrades
   8  branch gateways          one-time, KP,  no upgrades
- 24  sub-path gateways        one-time, branch currency, no upgrades   (3 per branch)
-264  upgradable skills        branch currency, 3–12 levels each        (33 per branch)
+ 48  sub-path gateways        one-time, branch currency, no upgrades   (6 per branch)
+536  upgradable skills        branch currency, 3–12 levels each        (67 per branch)
 ---
-300 total
+600 total
 ```
 
 ### Rule: gateways are never upgradable
@@ -74,17 +74,23 @@ A gateway has `maxLevel: 1` and `gateway: true`. The UI shows **Open** instead o
 counter, and the buy handler refuses a second purchase. Gateways carry a modest permanent
 effect so opening one is never a pure tax, but their real payload is *access*.
 
-Gateway hierarchy:
+Gateway hierarchy. The first three global gateways ask for **breadth** — branches opened;
+the next three ask for **depth** — those same branches taken to their third sub-path; the
+last one asks for all of it.
 
 ```
 G0  First Principles ......... free-ish root, opens everything
- ├─ G1  Two Ways To Learn .... requires 2 branch gateways
- ├─ G2  The Wide Net ......... requires 5 branch gateways
- └─ G3  Nothing Left To Open . requires all 8 branch gateways
+ ├─ G1  Two Ways To Learn .... 2 branch gateways
+ ├─ G2  The Wide Net ......... 3 more branch gateways
+ ├─ G3  Nothing Left To Open . the last 3 branch gateways
+ ├─ G4  Second Wind .......... algorithms + systems at sub-path 3
+ ├─ G5  The Deep End ......... craft + business + data at sub-path 3
+ ├─ G6  All The Way Down ..... security + community + research at sub-path 3
+ └─ G7  The End Of The Map ... every branch at sub-path 6
 
 B1..B8  branch gateways ...... require G0, cost KP, open a currency faucet
- └─ S1..S3 per branch ........ sub-path gateways, cost branch currency,
-                               open tiers 2 / 3 / 4 of that branch
+ └─ S1..S6 per branch ........ sub-path gateways, cost branch currency,
+                               open tiers 2..7 of that branch
 ```
 
 ### Upgradable skill shape
@@ -92,13 +98,13 @@ B1..B8  branch gateways ...... require G0, cost KP, open a currency faucet
 ```ts
 {
   id, branch, name, desc,
-  tier,            // 1..5, depth inside the branch
+  tier,            // 1..7, depth inside the branch
   req: string[],   // prerequisite skill ids (AND)
-  reqLevel,        // level each prerequisite must reach; 1 unless stated, 3 at tier 5
+  reqLevel,        // level each prerequisite must reach; 1 unless stated, 3 at tier 7
   kind,            // effect family — decides what the levels do
   power,           // magnitude of one level
   cost,            // cost of level 1, in branch currency
-  costGrowth,      // multiplier per level, 1.42 at tier 1 rising to 2.2 at tier 5
+  costGrowth,      // multiplier per level, 1.42 at tier 1 rising to 2.2 at tier 7
   maxLevel         // 3 – 12
 }
 ```
@@ -144,10 +150,10 @@ toast and a **new** badge that clears on the first visit.
 | page | contents | opens when |
 |---|---|---|
 | Desk | editor, Write code, codebase health and Squash, specialisation signature, active effects, commit log | always |
-| Tools | the 12 generators as a flat list, each with its eight tier upgrades as chips | the first tool is affordable, or any tool is owned |
+| Tools | the 20 generators as a flat list, each with its eight tier upgrades as chips and a tiers-bought bar | the first tool is affordable, or any tool is owned |
 | Skills | the tree — everything below this heading | `g0` is affordable, or any skill is owned, or rank ≥ 1 |
 | Career | rank ladder, specialisation cards, mastery | rank ≥ 1 |
-| Awards | achievements | the first award |
+| Awards | achievements, in sections, with a progress bar on every countable one | the first award |
 | Job Hop | prestige summary and perks; the button itself still needs 20M lines | 1M lines this run, or any hop, or any lifetime reputation |
 | Stats | the numbers, branch currency table, mastery | 1 000 lines lifetime |
 | Settings | save export / import / erase, theme, hotkeys | always, from the HUD gear |
@@ -162,23 +168,51 @@ on reload with the rest of the view state (`zero10x.view.v1`).
 ### How the tree is shown
 
 **Everything you can buy is one tree.** The Skills page is the only place in the game
-that sells skills and upgrades: 300 skills, 450 upgrades and 12 generators, 762 nodes,
+that sells skills and upgrades: 600 skills, 902 upgrades and 20 generators, 1 522 nodes,
 all drawn as one graph whose edges are the requirements that already live in the data —
 `Skill.req`, `Upgrade.reqGen`, `reqBranch`, `reqTrack`. There is no separate upgrade
 grid; that a generator upgrade wants 25 of that generator is a line on the canvas, not a
-sentence in a tooltip. The one concession is the Tools page: a second view of the 12
-generators and their 96 tier upgrades as a classic idle list, because the first five
+sentence in a tooltip. The one concession is the Tools page: a second view of the 20
+generators and their 160 tier upgrades as a classic idle list, because the first five
 minutes of a run are "buy a Notepad", and a canvas is a poor place to learn that. Tools
 sells nothing the tree does not; the two views read the same state and the same prices.
 
 The page draws that graph two ways, switched by a control beside the zoom buttons.
 
+#### Progressive reveal — what a purchase is for
+
+Two controls answer the question a tree of this size raises: *why should I buy this one?*
+
+**A purchase opens the next ring.** By default the map shows what you have reached and
+exactly one step further: a node is named when you own it, or when every prerequisite is
+owned. Anything past that draws in its usual place — the layout never shifts under the
+cursor — but as a dashed `???` with no price and no button, and the search box will not
+match it. Buying a gateway therefore *does* something visible beyond its own effect: the
+tier behind it acquires names. A fresh save shows one skill (`g0`); opening a branch takes
+the named skills from 9 to 22, and its first sub-path to 35. The rule lives in
+`src/core/reveal.ts` as a pure function of state — nothing is written to the save, so a
+node can never be un-discovered and an imported save shows exactly what it has earned.
+A **Earned / Everything** switch beside the density buttons turns the veil off for anyone
+who would rather read the whole map.
+
+**Every node says what it is worth.** The detail panel carries an *After one more* block:
+the real before-and-after of LOC/s, income, knowledge, click power, bug rate, bug bite,
+debug power, auto-cleanup, tool prices, offline rate and cap, luck, and every branch
+currency — but only the rows this particular purchase actually moves. A bug-rate skill
+shows a bug-rate line; an output skill shows LOC/s. The numbers come from
+`src/core/preview.ts`, which forks the state, applies the purchase to the copy and runs
+the same `derive` the live game runs, so the promise on the panel and the number a second
+after clicking are produced by one piece of code and cannot drift apart. Underneath it an
+**opens** row lists what this node unlocks; entries you have not discovered are listed but
+not named.
+
 #### Web — the radial map
 
 The default. One canvas, you at the centre, the game around you. A node with children
 carries a chevron: the chevron folds its sector away, the body of the node selects it. Only
-the centre and Foundation are open on a fresh game — sixteen nodes — and the map grows as
-you open what you care about.
+the centre and Foundation are open on a fresh game, and the map grows as you open what you
+care about. 1 564 nodes exist in total: the 1 522 purchasable ones plus the centre, the
+folds, sixteen ranks and seven specialisations.
 
 **Every purchasable node sells itself.** A node shows its name, its level and a button with
 the price: `+1 8 ✓` for a skill, `×1 $662` for a tool, `Open 5 KP` for a gateway, `Buy $1.4K`
@@ -252,13 +286,17 @@ tool tiers in a row is faster in a grid than in a fan; that is what this mode is
 
 | layer | nodes | canvas shape |
 |---|---|---|
-| Setup | 12 generators + 96 generator upgrades = 108 | row 0 the generators, rows 1–8 their upgrade ladders; one column per tool |
-| Foundation | `g0`, the 8 branch gateways, `g1`–`g3` = 12 | the map of the game; a branch node walks into that branch |
-| each branch ×8 | 36 skills + 8 branch upgrades = 44 | tier per row, gateway trunk down the middle, branch upgrades under the gateway |
-| Upgrades | 248 (+6 for the current specialisation) | one lane per family — output, income, click, quality, knowledge — descending by price |
+| Setup | 20 generators + 160 generator upgrades = 180 | row 0 the generators, rows 1–8 their upgrade ladders; one column per tool |
+| Foundation | `g0`, the 8 branch gateways, `g1`–`g7` = 16 | the map of the game; a branch node walks into that branch |
+| each branch ×8 | 74 skills + 12 branch upgrades = 86 | tier per row, gateway trunk down the middle, branch upgrades under the gateway |
+| Upgrades | 576 (+10 for the current specialisation) | one lane per family — output, income, click, quality, knowledge, offline, luck — descending by price |
+
+The branch layer is built by walking the gateways in order and dropping the tier they open
+between them, so a branch that grows a seventh tier needs no change here — and neither does
+Foundation, which lists whatever global gateways the data holds.
 
 A tier is a row, the gateway trunk runs down the middle, and every requirement is drawn as
-an edge — an edge lights up once its parent is owned deep enough, which is how the tier-5
+an edge — an edge lights up once its parent is owned deep enough, which is how the tier-7
 threshold becomes visible instead of surprising. Nodes are compact (name, level, progress)
 and a panel underneath carries the description, the price and the buy buttons: `+1 / +10 /
 Max` for a skill, `×1 / ×10 / Max` for a generator, one `Buy` for an upgrade. Structure is
@@ -269,39 +307,55 @@ A search box above the canvas matches names across **all** layers at once and hi
 the hits; a result is a button that switches layer, selects the node and scrolls it into
 view. The old shop filters survive as highlight modes — available, affordable, owned, all.
 
-### Distribution per branch (33 upgradable + 3 sub-gateways)
+### Distribution per branch (67 upgradable + 6 sub-gateways)
 
 | tier | count | unlocked by | level cap | cost of level 1 |
 |---|---|---|---|---|
-| 1 | 8 | branch gateway | 12 | 8 – 27 |
-| 2 | 8 | sub-gateway S1 | 10 | 95 – 321 |
-| 3 | 8 | sub-gateway S2 | 8 | 1 500 – 5 070 |
-| 4 | 6 | sub-gateway S3 | 6 | 24 000 – 64 800 |
-| 5 | 3 | four tier-4 skills at level ≥ 3 | 3 | 420 000 – 900 480 |
+| 1 | 12 | branch gateway | 12 | 8 – 38 |
+| 2 | 12 | sub-gateway S1 | 10 | 95 – 450 |
+| 3 | 12 | sub-gateway S2 | 8 | 1 500 – 7 110 |
+| 4 | 10 | sub-gateway S3 | 6 | 24 000 – 97 920 |
+| 5 | 8 | sub-gateway S4 | 5 | 420 000 – 1 419 600 |
+| 6 | 8 | sub-gateway S5 | 4 | 8.4M – 28.4M |
+| 7 | 5 | four tier-6 skills at level ≥ 3, behind S6 | 3 | 190M – 448M |
 
 Costs fan out across a tier — each position costs 34% more than the last, and a skill whose
 effect is its own branch currency costs 1.6× on top, so the compounding ones are never the
-cheapest thing on screen. Sub-path gateways cost 140 / 3 200 / 90 000 of the branch currency.
+cheapest thing on screen. Sub-path gateways cost 140 / 3 200 / 90 000 / 2.4M / 70M / 2.2B of
+the branch currency.
 
-Total purchasable *levels* across all 300 skills: **2 316** (`npm run gen` reports it).
+The **effect-kind rotation** shifts by one per tier, and a per-position jitter table of six
+entries runs against the eight-kind rotation, so inside a twelve-name tier every skill reads
+differently — the generator refuses to emit two rows in one branch and tier whose sentence is
+identical, and a four-entry jitter table would collide at position 8.
+
+Total purchasable *levels* across all 600 skills: **4 120** (`npm run gen` reports it).
 
 ---
 
-## 4. Shop upgrades — 450 (10× v1)
+## 4. Shop upgrades — 902
 
 Bought with money, reset on a job hop, unchanged in spirit from v1 — just far more of them.
 
 | family | count | how it is built |
 |---|---|---|
-| Generator tiers | 12 gens × 8 tiers = **96** | unlock at 10 / 25 / 50 / 100 / 175 / 250 / 350 / 500 owned |
-| Global output | **72** | authored ladder, escalating cost and rank requirement |
-| Income | **56** | ditto |
-| Click power | **40** | ditto |
-| Bugs & quality | **48** | ditto |
-| Knowledge | **32** | ditto |
-| Branch-flavoured | 8 × 8 = **64** | require that branch's gateway to be open |
-| Track-exclusive | 7 × 6 = **42** | require that specialisation |
-| **Total** | **450** | |
+| Generator tiers | 20 gens × 8 tiers = **160** | unlock at 10 / 25 / 50 / 100 / 175 / 250 / 350 / 500 owned |
+| Global output | 48 × 3 = **144** | authored ladder, escalating cost and rank requirement |
+| Income | 36 × 3 = **108** | ditto |
+| Click power | 28 × 3 = **84** | gated on manual lines rather than rank |
+| Bugs & quality | 32 × 3 = **96** | tier 1 slows bugs, tier 2 softens them, tier 3 sharpens debugging |
+| Knowledge | 24 × 3 = **72** | ditto |
+| Offline | 12 × 3 = **36** | raises the offline rate and adds an hour of cap each |
+| Luck | 12 × 3 = **36** | opportunity frequency |
+| Branch-flavoured | 8 × 12 = **96** | require that branch's gateway to be open |
+| Track-exclusive | 7 × 10 = **70** | require that specialisation |
+| **Total** | **902** | |
+
+Every ladder now runs three tiers deep rather than two, so the cost growth per step was
+softened to keep the top of each ladder inside the money curve the 20 tools produce, and
+the rank requirement is spread evenly over the ladder instead of stepping every four
+entries. The two new families use `Fx` fields that already existed — `offEff`/`offCap`
+and `luck` — so nothing in the engine had to learn a new effect.
 
 Generated by `scripts/gen-content.mjs` from authored name/description pools so every entry has
 a real name and a real effect, then written to `src/data/upgrades.generated.ts` and committed.
@@ -339,16 +393,18 @@ zero-to-ten-x/
    │  ├─ bus.ts                pub/sub log so core never imports the UI
    │  ├─ state.ts              new game, migrate, prestige reset
    │  ├─ effects.ts            effectOf(skill, level), applyFx, Derived
-   │  ├─ engine.ts             recompute(), tick(), branch-currency faucets
+   │  ├─ engine.ts             derive(state, out), recompute(), tick(), faucets
    │  ├─ actions.ts            click, debug, buy*, job hop
    │  ├─ events.ts             opportunities and their outcomes
    │  ├─ unlocks.ts            which pages the player has earned — pure functions of state
+   │  ├─ reveal.ts             which nodes have been discovered — also pure, also unsaved
+   │  ├─ preview.ts            what a purchase would do, by running derive() on a fork
    │  └─ save.ts               localStorage + export / import
    ├─ data/
    │  ├─ generators.ts  ranks.ts  branches.ts  tracks.ts
    │  ├─ achievements.ts  perks.ts  snippets.ts
-   │  ├─ skills.generated.ts     ← 300 skills
-   │  └─ upgrades.generated.ts   ← 450 upgrades
+   │  ├─ skills.generated.ts     ← 600 skills
+   │  └─ upgrades.generated.ts   ← 902 upgrades
    └─ ui/
       ├─ dom.ts  shell.ts  modal.ts  status.ts
       ├─ router.ts            the Page contract, go(id), hash sync, keys 1–9
@@ -377,8 +433,15 @@ zero-to-ten-x/
 | Four branches open in one run | run 3–4 |
 | All eight open in one run | run 6+, needs Research + Community compounding |
 | Tier-5 branch capstone | run 5+ |
+| Tier-7 branch capstone | run 8+, needs the branch's own currency compounding |
 
-`npm run stats` prints actual counts so the numbers in this file stay honest.
+**Awards are worth 0.6% each, not 1%.** The catalogue went from 39 to 94, and the bonus is
+flat per award (`AWARD_BONUS` in `src/core/engine.ts`); at 1% the doubling would have
+quietly turned a +39% ceiling into +90%. At 0.6% a complete set is worth about +56%, which
+is a little more than before and in proportion to the work it now takes.
+
+`npm run stats` prints actual counts — skills, upgrades, tools and awards — so the numbers
+in this file stay honest.
 
 ---
 
@@ -390,4 +453,6 @@ zero-to-ten-x/
   buttons plus a Tight/Roomy density switch; two-finger zoom is not wired up.
 - Progressive reveal of generators. A tool you cannot afford yet is dimmed, not hidden:
   the Setup layer is a fixed grid of columns, and hiding a column would make the canvas
-  jump under the player's cursor.
+  jump under the player's cursor. Skills and shop upgrades *are* revealed progressively
+  (see §3), but they keep their slot in the layout for exactly the same reason — an
+  undiscovered node is veiled, never absent.

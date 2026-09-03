@@ -32,11 +32,13 @@ In VS Code: open the folder, then **Run Task → dev** (or `Ctrl/Cmd+Shift+B`).
 `npm run stats` right now:
 
 ```
-SKILLS 300
-  gateways (one-time, no upgrades): 36
-  upgradable: 264
-  purchasable levels: 2316
-UPGRADES 450
+SKILLS 600
+  gateways (one-time, no upgrades): 64
+  upgradable: 536
+  purchasable levels: 4120
+UPGRADES 902
+TOOLS 20
+AWARDS 94
 ```
 
 ---
@@ -64,9 +66,9 @@ and the faucet does not run at all until you buy that branch's gateway with KP:
 Opening Craft and Security in the same run is legal and awkward on purpose: one wants bugs
 gone, the other wants them to exist.
 
-**Gateways are one-time.** 36 of the 300 skills open a path — the four global ones, the eight
-branch ones, and three sub-paths inside each branch. They cost once and can never be
-levelled. Everything else has 3 to 12 levels, 2,316 purchasable levels in total.
+**Gateways are one-time.** 64 of the 600 skills open a path — eight global ones, eight
+branch ones, and six sub-paths inside each branch. They cost once and can never be
+levelled. Everything else has 3 to 12 levels, 4,120 purchasable levels in total.
 
 **Pages open as you earn them.** A fresh game is one page, the **Desk**: an editor, a
 Write code button, bugs to squash and a commit log. The sidebar grows as you play — **Tools**
@@ -79,15 +81,16 @@ dock under the sidebar keeps Write code and Squash one click away wherever you a
 860px the sidebar becomes a bottom bar with four slots and **More**.
 
 **Tools** is the classic idle list: one row per tool with its price, its rate and its eight
-upgrade tiers as chips, and a `×1 / ×10 / Max` selector. It is a second view of the same
-twelve tools the tree sells; the two never disagree on a count or a price.
+upgrade tiers as chips, a bar showing how many of its eight tiers you own, and a
+`×1 / ×10 / Max` selector. It is a second view of the same twenty tools the tree sells;
+the two never disagree on a count or a price.
 
-**One tree, not three shops.** Everything you can buy — 300 skills, 450 upgrades, 12 tools —
+**One tree, not three shops.** Everything you can buy — 600 skills, 902 upgrades, 20 tools —
 is one graph on the **Skills** page, wired by what unlocks what. Zoom with the buttons, drag
 the canvas around, buy on the node itself or from the panel beside the map: `+1 / +10 / Max`
 for a skill, `×1 / ×10 / Max` for a tool, one **Buy** for an upgrade.
 
-**Web** is the default view: you in the middle, and 802 nodes around you — your tools, the
+**Web** is the default view: you in the middle, and 1,564 nodes around you — your tools, the
 money ladders, your rank ladder and the eight branches. Everything you open becomes its own
 cluster on one necklace around you: an opened branch is a ring of tiers around its gateway,
 an opened ladder a grid under its hub, and nothing you open pushes anything else away. A
@@ -116,9 +119,28 @@ tiers in a row is faster here than in a fan.
 **Search hits every layer at once.** Type a name and matches light up wherever they live;
 the lens beside it — available, affordable now, owned — dims everything else.
 
-**450 shop upgrades**, bought with money and lost on a job hop, live in that same tree:
+**902 shop upgrades**, bought with money and lost on a job hop, live in that same tree:
 tool tiers under their tool, branch-flavoured ones under that branch's gateway,
-track-exclusive ones beside the five money ladders.
+track-exclusive ones beside the seven money ladders — output, income, clicking, quality,
+knowledge, offline and luck.
+
+**A purchase shows you what it bought you.** Pick any node and the panel prints the real
+before-and-after — LOC/s, income, knowledge, click power, bug rate, debug power, tool
+prices, offline, luck, branch currencies — but only the lines this particular purchase
+actually moves, so a bug-rate skill talks about bugs and an output skill talks about LOC/s.
+The numbers come from running the engine over a copy of your save with the purchase already
+made, so what the panel promises and what you get a second later are the same code. Under
+it, an **opens** row lists what this node unlocks.
+
+**The map reveals itself as you buy.** By default you see what you have reached and one step
+further; anything past that keeps its place on the canvas but reads `???` until you buy
+whatever leads to it. Opening a branch gives names to its first tier, its first sub-path to
+the tier behind that. Switch **Earned / Everything** beside the density buttons if you would
+rather see the whole map at once. Nothing about this is stored in the save.
+
+**94 awards**, each worth +0.6% output forever, grouped into sections on the **Awards**
+page. Every countable one carries a progress bar — 340 / 500 bugs squashed — so an award is
+a goal rather than a surprise. Five stay hidden until you manage them.
 
 **Seven specialisations** picked at rank 4, each with its own 13-rung ladder and one
 mechanic nobody else gets — releases, a hype meter, bug bounties, machine scaling, knowledge
@@ -133,12 +155,14 @@ you just left.
 src/core/     rules — no DOM in here
   types.ts      Fx, Skill, Upgrade, GameState
   effects.ts    effectOf(skill, level) and the Fx accumulator
-  engine.ts     recompute(), tick(), the eight faucets
+  engine.ts     derive(state, out), recompute(), tick(), the eight faucets
   actions.ts    click, debug, buy, job hop
   state.ts      new game, migrate, prestige reset
   save.ts       localStorage + export/import
   events.ts     opportunities and incidents
   unlocks.ts    which pages the player has earned — pure functions of state
+  reveal.ts     which nodes have been discovered — also pure, also unsaved
+  preview.ts    what a purchase would do, by running derive() on a forked state
 src/data/     content — mostly data, no logic
   *.generated.ts  written by scripts/gen-content.mjs, committed on purpose
 src/ui/       rendering — reads core, never mutates it directly

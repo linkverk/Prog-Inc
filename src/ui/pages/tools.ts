@@ -55,6 +55,8 @@ function row(gid: string): string {
   const tiers = tiersOf(gid)
     .map((u) => tierChip(tierSpec(u.id, gid, u.reqGen?.[1] ?? 1), u.reqGen?.[1] ?? 1))
     .join("");
+  const all = tiersOf(gid);
+  const have = all.filter((u) => S.upg[u.id]).length;
   const cls = `tool${st.ready ? " afford" : ""}${open ? "" : " locked"}${owned > 0 ? " have" : ""}`;
   const btn = (n: string, label: string, on: boolean) =>
     `<button data-buy="${spec.id}" data-n="${n}"${on ? "" : " disabled"}>${label}</button>`;
@@ -64,7 +66,11 @@ function row(gid: string): string {
     `<span class="tbody"><span class="nm">${esc(g.name)}${owned > 0 ? ` <span class="count">&times;${fmt(owned)}</span>` : ""}</span>` +
     `<span class="ds">${esc(g.desc)}</span>` +
     `<span class="rt">+${fmt(each)} LOC/s each${owned > 0 ? ` &middot; ${fmt(owned * each)} LOC/s from these` : ""}</span>` +
-    (open ? `<span class="tiers">${tiers}</span>` : `<span class="rt">${esc(lockReason(spec))}</span>`) +
+    (open
+      ? `<span class="tiers">${tiers}</span>` +
+        `<span class="rt">${have}/${all.length} tiers bought</span>` +
+        `<i class="tbar"><b style="width:${((have / all.length) * 100).toFixed(1)}%"></b></i>`
+      : `<span class="rt">${esc(lockReason(spec))}</span>`) +
     `</span>` +
     `<span class="price"><span class="c ${st.ready ? "ok" : "no"}">${money(D.genCost[gid] ?? g.cost)}</span>` +
     `<span class="buyrow">${btn("1", "&times;1", st.ready)}${btn("10", "&times;10", affordableLevels(spec, 10) > 1)}${btn("max", "Max", affordableLevels(spec, 1000) > 1)}</span></span>` +
@@ -74,7 +80,9 @@ function row(gid: string): string {
 
 function render(): void {
   const total = GENERATORS.reduce((a, g) => a + (S.gens[g.id] ?? 0), 0);
-  $("tools-sum").textContent = `${fmt(total)} tools · +${fmt(D.lps)} LOC/s · ${money(S.money)} in the bank`;
+  const kinds = GENERATORS.filter((g) => (S.gens[g.id] ?? 0) > 0).length;
+  $("tools-sum").textContent =
+    `${kinds}/${GENERATORS.length} kinds · ${fmt(total)} tools · +${fmt(D.lps)} LOC/s · ${money(S.money)} in the bank`;
   $("tools-list").innerHTML = GENERATORS.map((g) => row(g.id)).join("");
 }
 

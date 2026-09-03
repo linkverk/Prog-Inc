@@ -35,19 +35,19 @@ A fresh save shows the Desk alone; the rest open at state milestones — see
 owns the page contract (mount once, toggle `hidden`, `#/<id>` in the hash, keys `1`–`9`);
 `src/ui/nav.ts` paints the sidebar and, under 860px, a four-slot bottom bar with **More**.
 
-**Tools** is the one deliberate duplicate: the 12 generators and their 96 tier upgrades as a
-flat idle list (`src/ui/pages/tools.ts`), reading the same specs and prices as the tree
+**Tools** is the one deliberate duplicate: the 20 generators and their 160 tier upgrades as
+a flat idle list (`src/ui/pages/tools.ts`), reading the same specs and prices as the tree
 through `src/ui/treemodel.ts`. Skills and shop upgrades are sold nowhere but the tree.
 
 ## One tree, one page
 
 Since 2026-09-03 every purchase in the game lives on a single tree — first as a **Tree** tab
-replacing the separate Setup and Upgrades tabs, now as the **Skills** page. 762 nodes
-(300 skills + 450 shop upgrades + 12 generators) form one graph whose edges are the
+replacing the separate Setup and Upgrades tabs, now as the **Skills** page. 1 522 nodes
+(600 skills + 902 shop upgrades + 20 generators) form one graph whose edges are the
 requirements already present in the data: `Skill.req`, `Upgrade.reqGen`, `reqBranch`,
 `reqTrack` (`src/ui/treemodel.ts`).
 
-762 nodes do not fit on one canvas, so a rail cuts the graph into **layers**, each a
+1 522 nodes do not fit on one canvas, so a rail cuts the graph into **layers**, each a
 connected region of it, with a node acting as the door between two (`src/ui/treetab.ts`):
 
 | layer | nodes | shape |
@@ -67,9 +67,9 @@ mystery, and a tool upgrade visibly hangs off the tool it needs 25 of.
 The layered view above is now the *second* mode. The default is a radial map
 (`src/ui/treegraph.ts` builds it, `layoutRadial` in `src/ui/tree.ts` places it): you at the
 centre, four folds around you — Setup, Upgrades, Career, Foundation — and the branches
-beyond. **802 nodes**: the 762 purchasable ones plus the centre, fourteen folds (six hubs and
-one upgrade shelf per branch, `an:hub:branch:<id>`), sixteen ranks, seven specialisations
-and two taps. Ranks and taps are a node kind of their own, `anchor`: nothing buys them, and
+beyond. **1 564 nodes**: the 1 522 purchasable ones plus the centre, nineteen folds (eight
+hubs and one upgrade shelf per branch, `an:hub:branch:<id>`), sixteen ranks, seven
+specialisations and two taps. Ranks and taps are a node kind of their own, `anchor`: nothing buys them, and
 they exist so `reqRank` stops being prose.
 
 Since 2026-09-04 the map is a **necklace of clusters** rather than one set of global rings.
@@ -143,14 +143,19 @@ Two invariants the presets must not touch:
 
 | thing | count |
 |---|---|
-| skills | 300 |
-| — gateways (never upgradable) | 36 |
-| — upgradable | 264 |
-| total purchasable levels | 2 316 |
-| shop upgrades | 450 |
+| skills | 600 |
+| — gateways (never upgradable) | 64 |
+| — upgradable | 536 |
+| total purchasable levels | 4 120 |
+| shop upgrades | 902 |
+| tools | 20 |
+| awards | 94 |
+| nodes on the map | 1 564 |
 
 `PLAN.md` claimed about 2 500 levels and ~440 upgrades before 2026-09-03; both were corrected
-to the printed values. See [[plan-md]].
+to the printed values. The catalogue roughly doubled on 2026-09-04 — tiers 6 and 7 per
+branch, three more sub-paths, eight more tools, a third rung on every money ladder, and two
+new ladders (offline, luck). See [[plan-md]] and [[progressive-reveal]].
 
 ## Branches
 

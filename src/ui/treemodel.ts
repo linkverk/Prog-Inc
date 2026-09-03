@@ -15,6 +15,8 @@ import {
   D, S, SKILL_BY_ID, UPGRADE_BY_ID, bulkCost, bulkCount, skillUnlocked, upgradeUnlocked,
 } from "../core/engine";
 import { skillCost } from "../core/effects";
+import { skillDiscovered, upgradeDiscovered } from "../core/reveal";
+import { view } from "./viewstore";
 import { buyGenerator, buySkill, buySkillBulk, buyUpgrade } from "../core/actions";
 import { SKILLS } from "../data/skills.generated";
 import { UPGRADES } from "../data/upgrades.generated";
@@ -55,7 +57,10 @@ export const LAYERS: Layer[] = [
   { id: "upgrades", name: "Upgrades", sym: "$" },
 ];
 
-const TIER_TITLES = ["Gateway", "Fundamentals", "Working Knowledge", "Depth", "Mastery", "Capstone"];
+const TIER_TITLES = [
+  "Gateway", "Fundamentals", "Working Knowledge", "Depth", "Mastery",
+  "Specialism", "Frontier", "Capstone",
+];
 
 const FAMILY_LABELS: Record<string, string> = {
   generator: "Tool tier",
@@ -64,10 +69,12 @@ const FAMILY_LABELS: Record<string, string> = {
   click: "Clicking",
   quality: "Quality",
   knowledge: "Knowledge",
+  offline: "Offline",
+  luck: "Luck",
 };
 
-/** The five money-bought ladders, in the order they appear as lanes. */
-const LADDERS = ["output", "income", "click", "quality", "knowledge"];
+/** The money-bought ladders, in the order they appear as lanes. */
+const LADDERS = ["output", "income", "click", "quality", "knowledge", "offline", "luck"];
 
 export function familyLabel(f: string): string {
   if (FAMILY_LABELS[f]) return FAMILY_LABELS[f];
@@ -189,6 +196,9 @@ for (const s of SKILLS) {
   byBranch.get(key)!.push(s);
 }
 
+/** The gateways that belong to nobody: `g0` and the ones that ask for several branches. */
+export const GLOBAL_SKILLS: Skill[] = byBranch.get("global") ?? [];
+
 /**
  * Setup: a column per tool, its eight upgrade tiers hanging underneath.
  * The first edge carries the real threshold — ten of that tool — and the rest chain,
@@ -207,32 +217,40 @@ function setupRows(): NodeSpec[][] {
   return rows;
 }
 
-/** Foundation: the map of the whole game. A branch gateway is the door into its branch. */
+/**
+ * Foundation: the map of the whole game. A branch gateway is the door into its branch.
+ * The later global gateways come off the data rather than a hand-written list, so adding
+ * one to the generator puts it on this layer without touching the UI.
+ */
 function globalRows(): NodeSpec[][] {
   const at = (id: string, jump?: LayerId) => skillSpec(SKILL_BY_ID[id], jump);
-  return [
-    [at("g0")],
-    BRANCH_IDS.map((b) => at(`b_${b}`, b)),
-    [at("g1"), at("g2"), at("g3")],
-  ];
+  const later = GLOBAL_SKILLS.filter((s) => s.id !== "g0").map((s) => skillSpec(s));
+  return [[at("g0")], BRANCH_IDS.map((b) => at(`b_${b}`, b)), later];
 }
 
 /**
  * A branch is its own trunk: gateway, its money upgrades, then tier, sub-gateway, tier …
- * down to the capstones. The eight branch-flavoured upgrades sit directly under the
- * gateway because that is exactly what unlocks them.
+ * down to the capstones. The branch-flavoured upgrades sit directly under the gateway
+ * because that is exactly what unlocks them.
+ *
+ * Gateway `i` opens tier `i + 1`, so the rows alternate for as many sub-paths as the
+ * data has — six today, and however many the generator grows to tomorrow.
  */
 function branchRows(b: BranchId): NodeSpec[][] {
   const mine = byBranch.get(b) ?? [];
   const gates = mine.filter((s) => s.gateway);
   const tier = (t: number) => mine.filter((s) => s.tier === t).map((s) => skillSpec(s));
-  const upgrades = ladderOf(`branch:${b}`).map((u) => upgradeSpec(u, [skId(`b_${b}`)]));
-  return [
-    [skillSpec(gates[0])], upgrades, tier(1),
-    [skillSpec(gates[1])], tier(2),
-    [skillSpec(gates[2])], tier(3),
-    [skillSpec(gates[3])], tier(4), tier(5),
+  const deepest = mine.reduce((a, s) => Math.max(a, s.tier), 0);
+
+  const rows: NodeSpec[][] = [
+    [skillSpec(gates[0])],
+    ladderOf(`branch:${b}`).map((u) => upgradeSpec(u, [skId(`b_${b}`)])),
   ];
+  for (let t = 1; t <= deepest; t++) {
+    if (t > 1 && gates[t - 1]) rows.push([skillSpec(gates[t - 1])]);
+    rows.push(tier(t));
+  }
+  return rows.filter((r) => r.length > 0);
 }
 
 /** Upgrades: one lane per money-bought family, plus your specialisation's own six. */
@@ -386,6 +404,21 @@ export function unlocked(spec: NodeSpec): boolean {
   return upgradeUnlocked(UPGRADE_BY_ID[spec.key]);
 }
 
+/**
+ * Has the player got far enough for this node to have a name yet?
+ *
+ * Hubs, anchors and tools always read plainly — they are furniture, and hiding the Setup
+ * column would move the grid under the cursor. Skills and upgrades are the things worth
+ * discovering, so those are the ones a purchase lights up.
+ */
+export function discovered(spec: NodeSpec): boolean {
+  if (view.reveal === "all") return true;
+  if (spec.kind === "anchor" || spec.kind === "gen") return true;
+  if (spec.kind === "skill") return skillDiscovered(SKILL_BY_ID[spec.key]);
+  const u = UPGRADE_BY_ID[spec.key];
+  return upgradeDiscovered(u.reqBranch, u.reqTrack, u.reqGen?.[0]);
+}
+
 export function statusOf(node: TreeNodeSpec): NodeStatus {
   const spec = specs.get(node.id) ?? (node as NodeSpec);
   if (spec.kind === "anchor") {
@@ -404,6 +437,11 @@ export function statusOf(node: TreeNodeSpec): NodeStatus {
   const open = unlocked(spec);
   const maxed = spec.maxLevel > 0 && level >= spec.maxLevel;
   const ready = open && !maxed && balanceOf(spec) >= costOf(spec);
+  const veiled = !discovered(spec);
+
+  if (veiled) {
+    return { level: 0, unlocked: false, ready: false, maxed: false, label: "", fill: 0, veiled };
+  }
 
   if (spec.kind === "gen") {
     const next = thresholds.find((t) => t > level) ?? level;
@@ -425,6 +463,66 @@ export function statusOf(node: TreeNodeSpec): NodeStatus {
     label: spec.gateway ? (level > 0 ? "open" : "one-time") : `${level}/${spec.maxLevel}`,
     fill: spec.gateway ? (level > 0 ? 1 : 0) : level / spec.maxLevel,
   };
+}
+
+/* ---------------------------------------------------------------- *
+ *  Progress
+ * ---------------------------------------------------------------- */
+
+/** How far through a set you are: what you have, out of what there is. */
+export type Tally = [have: number, total: number];
+
+export interface LayerProgress {
+  /** nodes with at least one purchase on them */
+  nodes: Tally;
+  /** individual levels bought, for the layers where a node has more than one */
+  levels: Tally;
+  /** 0..1, what the bar draws */
+  fill: number;
+}
+
+const tallyFill = ([have, total]: Tally): number => (total > 0 ? have / total : 0);
+
+/**
+ * A branch, counted twice over: how much of it you have touched, and how deep you have
+ * gone. The two diverge sharply — owning every skill at level 1 is a third of the levels.
+ */
+export function branchProgress(b: BranchId): LayerProgress {
+  const mine = byBranch.get(b) ?? [];
+  const ups = UPGRADES.filter((u) => u.reqBranch === b);
+  let owned = 0;
+  let levels = 0;
+  let cap = 0;
+  for (const sk of mine) {
+    const lvl = S.skills[sk.id] ?? 0;
+    if (lvl > 0) owned++;
+    levels += lvl;
+    cap += sk.maxLevel;
+  }
+  const upsOwned = ups.filter((u) => S.upg[u.id]).length;
+  const nodes: Tally = [owned + upsOwned, mine.length + ups.length];
+  return { nodes, levels: [levels, cap], fill: tallyFill(nodes) };
+}
+
+/** The same reading for the layers that are not a branch. */
+export function layerProgress(layer: LayerId): LayerProgress {
+  if (layer === "setup") {
+    const owned = GENERATORS.filter((g) => (S.gens[g.id] ?? 0) > 0).length;
+    const tiers = UPGRADES.filter((u) => u.family === "generator");
+    const tiersOwned = tiers.filter((u) => S.upg[u.id]).length;
+    const nodes: Tally = [owned + tiersOwned, GENERATORS.length + tiers.length];
+    return { nodes, levels: [owned, GENERATORS.length], fill: tallyFill(nodes) };
+  }
+  if (layer === "global") {
+    const g = GLOBAL_SKILLS;
+    const nodes: Tally = [g.filter((s) => S.skills[s.id]).length, g.length];
+    return { nodes, levels: nodes, fill: tallyFill(nodes) };
+  }
+  if (layer === "upgrades") {
+    const nodes: Tally = [upgradesOwned(), UPGRADES.length];
+    return { nodes, levels: nodes, fill: tallyFill(nodes) };
+  }
+  return branchProgress(layer as BranchId);
 }
 
 /** Why a node is closed, in the player's terms. Empty when it is open. */

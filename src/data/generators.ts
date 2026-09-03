@@ -13,6 +13,14 @@ export const GENERATORS: Generator[] = [
   { id: "pair", emoji: "🤖", name: "AI Pair Programmer", desc: "Never tired, never right the first time.", cost: 1.9e11, rate: 1.6e6, clean: 0.02, machine: true },
   { id: "farm", emoji: "🏭", name: "Distributed Build Farm", desc: "Ten thousand cores, one Makefile.", cost: 2.9e12, rate: 1.05e7, machine: true },
   { id: "swarm", emoji: "🌌", name: "Autonomous Agent Swarm", desc: "You describe the system. It appears.", cost: 4.4e13, rate: 6.6e7, clean: 0.03, machine: true },
+  { id: "spec", emoji: "📜", name: "Executable Specification", desc: "Written once, in prose the compiler accepts.", cost: 6.8e14, rate: 4.2e8 },
+  { id: "synth", emoji: "⚗️", name: "Program Synthesiser", desc: "State the property. Collect the implementation.", cost: 1.05e16, rate: 2.7e9, machine: true },
+  { id: "fleet", emoji: "🛠️", name: "Self-Healing Fleet", desc: "Notices the outage, fixes it, files the report.", cost: 1.6e17, rate: 1.7e10, clean: 0.035, machine: true },
+  { id: "campus", emoji: "🏛️", name: "Research Campus", desc: "Two thousand people, all reading your issues.", cost: 2.5e18, rate: 1.1e11 },
+  { id: "foundry", emoji: "🔬", name: "Silicon Foundry", desc: "When the bottleneck is physics, change the physics.", cost: 3.9e19, rate: 7e11, machine: true },
+  { id: "orbital", emoji: "🛰️", name: "Orbital Data Centre", desc: "Cooling is free up there. So is the sunlight.", cost: 6e20, rate: 4.4e12, machine: true },
+  { id: "civ", emoji: "🌍", name: "Civilisation-Scale Compiler", desc: "Every idle cycle on the planet, pointed at your build.", cost: 9.3e21, rate: 2.8e13, clean: 0.04, machine: true },
+  { id: "singular", emoji: "✴️", name: "The Singularity Intern", desc: "Still asks where the coffee is. Ships everything else.", cost: 1.45e23, rate: 1.8e14, machine: true },
 ];
 
 export const GROWTH = 1.15;

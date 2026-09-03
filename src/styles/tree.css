@@ -205,3 +205,51 @@
   font-family:var(--mono);font-size:11.5px;color:var(--ink);
 }
 .counthint{font-family:var(--mono);font-size:11px;color:var(--ink3);white-space:nowrap}
+
+/* ---------- discovery: a node that is on the map but not yet earned ---------- */
+.tnode.veiled{
+  opacity:.5;border-style:dashed;background:transparent;
+}
+.tnode.veiled .tn{color:var(--ink3);letter-spacing:.18em}
+.tnode.veiled .tl,.tnode.veiled .tb,.tnode.veiled .tbuy{visibility:hidden}
+
+/* ---------- what a purchase is worth ---------- */
+.tgain{
+  margin-top:8px;padding:7px 8px;border-radius:8px;
+  background:var(--surface2);border:1px solid var(--line-soft);
+}
+.tgh{
+  font-size:10px;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--ink3);font-weight:600;margin-bottom:4px;
+}
+.tgrow{display:flex;align-items:baseline;gap:6px;font-size:11px;line-height:1.6}
+.tgl{color:var(--ink3);min-width:56px}
+.tgv{font-family:var(--mono);flex:1;min-width:0}
+.tgv>i{color:var(--ink3);font-style:normal;padding:0 2px}
+.tgd{font-family:var(--mono);font-weight:600;white-space:nowrap}
+.tgd.up{color:var(--pass)}
+.tgd.down{color:var(--fail)}
+.tgnone{font-size:11px;color:var(--ink3);line-height:1.45}
+
+/* ---------- what a purchase opens ---------- */
+.tdopens{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin-top:8px}
+.tdoh{
+  font-size:10px;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--ink3);font-weight:600;margin-right:2px;
+}
+.tdlink.veil{opacity:.55;letter-spacing:.12em;cursor:default}
+
+/* ---------- rail progress ---------- */
+.lchip .lbar{
+  display:block;height:3px;border-radius:2px;margin-top:5px;
+  background:var(--line-soft);overflow:hidden;
+}
+.lchip .lbar>b{display:block;height:100%;background:var(--accent);opacity:.8;transition:width .3s}
+.lchip.shut .lbar{opacity:.4}
+
+/* ---------- tools page: how far through a tool you are ---------- */
+.tool .tbar{
+  display:block;height:3px;border-radius:2px;margin-top:6px;
+  background:var(--line-soft);overflow:hidden;
+}
+.tool .tbar>b{display:block;height:100%;background:var(--accent);opacity:.8;transition:width .3s}
