@@ -9,7 +9,7 @@
     "runtime": null
   },
   "build": {
-    "buildCommand": "cd \"D:/GitHub/Prog Inc\" && npm run build 2>&1 | tail -4 && npm run stats 2>&1 | grep -E \"^SKILLS|^UPGRADES\"; pkill -f \"vite.*5179\" 2>/dev/null; curl -s -o /dev/null -m 2 -w \"dev still up: %{http_code}\\n\" http://localhost:5179/ || echo \"dev down\"",
+    "buildCommand": "cd \"D:/GitHub/Prog Inc\" && npm run build 2>&1 | tail -3 && echo \"=== git ===\" && git status --short | head -15",
     "testCommand": null,
     "lintCommand": null,
     "devCommand": null,
@@ -65,8 +65,8 @@
     },
     {
       "path": "PLAN.md",
-      "accessCount": 8,
-      "lastAccessed": 1788464362607,
+      "accessCount": 9,
+      "lastAccessed": 1788465947379,
       "type": "file"
     },
     {
@@ -85,6 +85,12 @@
       "path": "C:\\Users\\GEBRUI~1\\AppData\\Local\\Temp\\claude\\D--GitHub-Prog-Inc\\8ab29a83-d550-4cc1-af46-4b23b8ce3908\\scratchpad\\web-overview.png",
       "accessCount": 5,
       "lastAccessed": 1788464337791,
+      "type": "file"
+    },
+    {
+      "path": "wiki\\pages\\overview.md",
+      "accessCount": 5,
+      "lastAccessed": 1788465945178,
       "type": "file"
     },
     {
@@ -118,6 +124,12 @@
       "type": "directory"
     },
     {
+      "path": "C:\\Users\\Gebruiker\\.claude\\plans\\make-a-plan-and-vectorized-meadow.md",
+      "accessCount": 4,
+      "lastAccessed": 1788465976940,
+      "type": "file"
+    },
+    {
       "path": "src\\core\\engine.ts",
       "accessCount": 3,
       "lastAccessed": 1788461735285,
@@ -145,18 +157,6 @@
       "path": "src\\core\\types.ts",
       "accessCount": 3,
       "lastAccessed": 1788463215962,
-      "type": "file"
-    },
-    {
-      "path": "wiki\\pages\\overview.md",
-      "accessCount": 3,
-      "lastAccessed": 1788464397445,
-      "type": "file"
-    },
-    {
-      "path": "C:\\Users\\Gebruiker\\.claude\\plans\\make-a-plan-and-vectorized-meadow.md",
-      "accessCount": 3,
-      "lastAccessed": 1788464977462,
       "type": "file"
     },
     {

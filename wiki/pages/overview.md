@@ -3,7 +3,7 @@ type: concept
 id: overview
 updated: 2026-09-03
 sources: [plan-md]
-code: [PLAN.md, src/main.ts, src/core/engine.ts, src/ui/treemodel.ts, src/ui/treetab.ts]
+code: [PLAN.md, src/main.ts, src/core/engine.ts, src/ui/tree.ts, src/ui/treemodel.ts, src/ui/treegraph.ts, src/ui/treetab.ts]
 ---
 
 # Zero to Ten-X — overview
@@ -72,8 +72,24 @@ centre, which is what makes forty cross-branch links legible instead of felt.
 
 `fx.gens` (96) and `fx.cur` (64) are deliberately **not** drawn: in both the effect edge
 would land on the node that is already the parent. View state — mode, open folds, which
-families are drawn — lives in `localStorage` under `zero10x.view.v1`, kept out of the save
-so `zero10x.save.v3` needs no migration.
+families are drawn, node density — lives in `localStorage` under `zero10x.view.v1`, kept out
+of the save so `zero10x.save.v3` needs no migration.
+
+### Density
+
+Both layouts read one `Metrics` object (`src/ui/tree.ts`) with two presets, switched beside
+the zoom buttons: **tight** (default) and **normal**. Tight roughly halves every gap —
+overview 1303 → 1143 px, an opened Craft 2523 → 2219, the flat Craft layer 1124 → 1058,
+nearest-neighbour gap 16 → 6 px — with zero overlapping boxes in either preset.
+
+Two invariants the presets must not touch, both learned from a failed attempt:
+
+- **angle stays proportional to leaves.** Sharing the circle by `leaves^0.5` shrinks the
+  folded overview but narrows an opened branch's wedge, which pushes its ring outwards:
+  Craft grew 2366 → 3586 px. Reverted.
+- **clearance is measured on the diagonal.** Half the longer side is not enough — two boxes
+  on a nearly horizontal arc meet corner-first. `reach()` and the arc rule both use
+  `hypot(w, h) / 2`.
 
 ## Verified content counts
 

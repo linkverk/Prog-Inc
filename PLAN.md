@@ -327,7 +327,8 @@ zero-to-ten-x/
 
 - Server-side saves. Everything is `localStorage` plus manual export/import.
 - Sound.
-- Mobile pinch-zoom on the tree (scroll + zoom buttons only).
+- Mobile pinch-zoom on the tree. The canvas scrolls, drags with the pointer, and has zoom
+  buttons plus a Tight/Roomy density switch; two-finger zoom is not wired up.
 - Progressive reveal of generators. A tool you cannot afford yet is dimmed, not hidden:
   the Setup layer is a fixed grid of columns, and hiding a column would make the canvas
   jump under the player's cursor.
