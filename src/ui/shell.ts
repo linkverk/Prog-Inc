@@ -74,9 +74,7 @@ export const SHELL = `
     <div class="panel">
       <div class="tabstrip">
         <div class="tabs" role="tablist" id="tabs">
-          <button class="tab" role="tab" data-tab="setup" aria-selected="true">Setup</button>
-          <button class="tab" role="tab" data-tab="shop" aria-selected="false">Upgrades<span class="dot" id="dot-shop" hidden></span></button>
-          <button class="tab" role="tab" data-tab="branches" aria-selected="false">Branches<span class="dot" id="dot-br" hidden></span></button>
+          <button class="tab" role="tab" data-tab="tree" aria-selected="true">Tree<span class="dot" id="dot-tree" hidden></span></button>
           <button class="tab" role="tab" data-tab="track" aria-selected="false">Track<span class="dot" id="dot-trk" hidden></span></button>
           <button class="tab" role="tab" data-tab="career" aria-selected="false">Career</button>
           <button class="tab" role="tab" data-tab="awards" aria-selected="false">Awards</button>
@@ -84,40 +82,23 @@ export const SHELL = `
         </div>
       </div>
 
-      <div class="tabpane" id="pane-setup">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:11px">
-          <p class="hint" style="margin:0">Everything that writes code while you don't. Each purchase costs more than the last.</p>
-          <div class="buybar">
-            <button class="minibtn" data-bulk="1" aria-pressed="true">&times;1</button>
-            <button class="minibtn" data-bulk="10" aria-pressed="false">&times;10</button>
-            <button class="minibtn" data-bulk="max" aria-pressed="false">Max</button>
-          </div>
-        </div>
-        <div class="list" id="gens"></div>
-      </div>
-
-      <div class="tabpane" id="pane-shop" hidden>
-        <p class="hint">Bought with money, lost on a job hop. They unlock as your career gives you access to them.</p>
+      <div class="tabpane" id="pane-tree">
+        <p class="hint" id="tree-hint"></p>
         <div class="filters">
-          <input type="search" id="shop-q" placeholder="Search upgrades…" spellcheck="false" />
-          <select id="shop-family"></select>
-          <select id="shop-show">
+          <input type="search" id="tree-q" placeholder="Search every layer…" spellcheck="false" />
+          <select id="tree-mode">
+            <option value="all">No lens</option>
             <option value="avail">Available</option>
             <option value="afford">Affordable now</option>
             <option value="owned">Owned</option>
-            <option value="all">Everything</option>
           </select>
-          <span class="counthint" id="shop-count"></span>
+          <span class="counthint" id="tree-count"></span>
         </div>
-        <div class="grid2" id="shop"></div>
-      </div>
-
-      <div class="tabpane" id="pane-branches" hidden>
-        <p class="hint" id="branch-hint"></p>
+        <div class="tresults" id="tree-results"></div>
         <div class="skillwrap">
-          <div class="branchlist" id="branchlist"></div>
+          <div class="layerlist" id="layerlist"></div>
           <div class="treecol">
-            <div id="branchhead"></div>
+            <div id="layerhead"></div>
             <div class="zoombar">
               <button class="minibtn" id="zoom-out" title="Zoom out" aria-label="Zoom out">&minus;</button>
               <button class="minibtn" id="zoom-in" title="Zoom in" aria-label="Zoom in">+</button>

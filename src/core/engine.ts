@@ -344,15 +344,15 @@ export function checkAwards(): string[] {
  *  Purchasing maths
  * ---------------------------------------------------------------- */
 
-export function bulkCount(genId: string): number {
+export function bulkCount(genId: string, bulk: number | "max" = S.bulk): number {
   const g = GENERATORS.find((x) => x.id === genId)!;
   const owned = S.gens[genId] ?? 0;
   const base = g.cost * D.costMult * GROWTH ** owned;
-  if (S.bulk === "max") {
+  if (bulk === "max") {
     if (S.money < base) return 0;
     return Math.max(0, Math.floor(Math.log(1 + (S.money * (GROWTH - 1)) / base) / Math.log(GROWTH)));
   }
-  return S.bulk;
+  return bulk;
 }
 
 export function bulkCost(genId: string, k: number): number {

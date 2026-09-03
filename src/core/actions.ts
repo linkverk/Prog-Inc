@@ -51,8 +51,8 @@ export function debugSession(): { closed: number; paid: number } {
   return { closed, paid: 0 };
 }
 
-export function buyGenerator(genId: string): BuyResult {
-  const k = bulkCount(genId);
+export function buyGenerator(genId: string, bulk: number | "max" = S.bulk): BuyResult {
+  const k = bulkCount(genId, bulk);
   if (k < 1) return "poor";
   const cost = bulkCost(genId, k);
   if (S.money < cost) return "poor";

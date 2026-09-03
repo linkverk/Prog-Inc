@@ -1,14 +1,15 @@
 /**
- * The skill tree canvas: layout, edges, nodes.
+ * The tree canvas: layout, edges, nodes, zoom.
+ *
+ * Deliberately knows nothing about the game. It is handed flat node specs and a function
+ * that reports the live state of one, so the same renderer draws skills, generators and
+ * shop upgrades. Everything game-shaped lives in `treemodel.ts`.
  *
  * Split in two on purpose. `buildTree` creates the DOM once, `paintTree` only rewrites
- * classes and short labels — the branches tab repaints every couple of seconds, and a
- * rebuild would throw away the zoom, the scroll position and the selected node.
+ * classes and short labels — the tab repaints every couple of seconds, and a rebuild would
+ * throw away the zoom, the scroll position and the selected node.
  */
 
-import type { Skill } from "../core/types";
-import { S, SKILL_BY_ID, skillUnlocked } from "../core/engine";
-import { skillCost } from "../core/effects";
 import { esc } from "./dom";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -24,11 +25,34 @@ const BEND = 24;
 export const ZOOM_MIN = 0.4;
 export const ZOOM_MAX = 1.4;
 
-export interface TreeNode {
+/** The slice of a node the canvas needs. `treemodel` adds the rest. */
+export interface TreeNodeSpec {
   id: string;
+  name: string;
+  /** ids of prerequisites; only those present on this canvas become edges */
+  req: string[];
+  /** level a prerequisite must reach before its edge counts as live */
+  reqLevel: number;
+  /** extra class on the node: "gate", "gen", "upg" */
+  flavour?: string;
+}
+
+/** What a node looks like right now. Supplied per paint by the caller. */
+export interface NodeStatus {
+  level: number;
+  unlocked: boolean;
+  ready: boolean;
+  maxed: boolean;
+  /** the small label in the top-right of the node */
+  label: string;
+  /** progress bar, 0..1 */
+  fill: number;
+}
+
+export interface TreeNode {
+  spec: TreeNodeSpec;
   x: number;
   y: number;
-  row: number;
 }
 
 export interface TreeEdge {
@@ -55,15 +79,25 @@ export interface TreeView {
 
 export interface PaintOpts {
   selected: string | null;
-  /** overrides the small label in the top-right of a node */
-  labelOf?: (skill: Skill, level: number) => string;
+  statusOf: (spec: TreeNodeSpec) => NodeStatus;
+  /** when set, ids inside it are highlighted and everything else is dimmed */
+  highlight?: Set<string> | null;
 }
 
-/**
- * Place one row of ids per tier, centred, and connect every node to the prerequisites
- * that are also on this canvas. Pure: no DOM, no globals.
- */
-export function layoutTree(rows: string[][]): TreeLayout {
+/** Connect every node to the prerequisites that are also on this canvas. */
+function wire(nodes: TreeNode[], width: number, height: number): TreeLayout {
+  const here = new Set(nodes.map((n) => n.spec.id));
+  const edges: TreeEdge[] = [];
+  for (const n of nodes) {
+    for (const req of n.spec.req) {
+      if (here.has(req)) edges.push({ from: req, to: n.spec.id, key: `${req}>${n.spec.id}` });
+    }
+  }
+  return { nodes, edges, width, height };
+}
+
+/** One row per tier, each row centred. The shape a skill branch wants. */
+export function layoutRows(rows: TreeNodeSpec[][]): TreeLayout {
   const widest = rows.reduce((a, r) => Math.max(a, r.length), 1);
   const width = PAD * 2 + widest * NODE_W + (widest - 1) * GAP_X;
   const height = PAD * 2 + rows.length * NODE_H + (rows.length - 1) * GAP_Y;
@@ -72,25 +106,32 @@ export function layoutTree(rows: string[][]): TreeLayout {
   rows.forEach((row, r) => {
     const span = row.length * NODE_W + (row.length - 1) * GAP_X;
     const startX = Math.round((width - span) / 2);
-    row.forEach((id, i) => {
-      nodes.push({
-        id,
-        x: startX + i * (NODE_W + GAP_X),
-        y: PAD + r * (NODE_H + GAP_Y),
-        row: r,
-      });
+    row.forEach((spec, i) => {
+      nodes.push({ spec, x: startX + i * (NODE_W + GAP_X), y: PAD + r * (NODE_H + GAP_Y) });
     });
   });
 
-  const here = new Set(nodes.map((n) => n.id));
-  const edges: TreeEdge[] = [];
-  for (const n of nodes) {
-    for (const req of SKILL_BY_ID[n.id]?.req ?? []) {
-      if (here.has(req)) edges.push({ from: req, to: n.id, key: `${req}>${n.id}` });
-    }
-  }
+  return wire(nodes, width, height);
+}
 
-  return { nodes, edges, width, height };
+/**
+ * One lane per column, descending. The shape a ladder wants — a family of upgrades, or a
+ * generator and the eight tiers that improve it. A column keeps its x whatever its length,
+ * so a short lane leaves a gap rather than sliding the others sideways.
+ */
+export function layoutColumns(lanes: TreeNodeSpec[][]): TreeLayout {
+  const deepest = lanes.reduce((a, l) => Math.max(a, l.length), 1);
+  const width = PAD * 2 + lanes.length * NODE_W + (lanes.length - 1) * GAP_X;
+  const height = PAD * 2 + deepest * NODE_H + (deepest - 1) * GAP_Y;
+
+  const nodes: TreeNode[] = [];
+  lanes.forEach((lane, c) => {
+    lane.forEach((spec, i) => {
+      nodes.push({ spec, x: PAD + c * (NODE_W + GAP_X), y: PAD + i * (NODE_H + GAP_Y) });
+    });
+  });
+
+  return wire(nodes, width, height);
 }
 
 function edgePath(a: TreeNode, b: TreeNode): string {
@@ -101,9 +142,8 @@ function edgePath(a: TreeNode, b: TreeNode): string {
   return `M ${x1} ${y1} C ${x1} ${y1 + BEND}, ${x2} ${y2 - BEND}, ${x2} ${y2}`;
 }
 
-export function buildTree(host: HTMLElement, rows: string[][]): TreeView {
-  const layout = layoutTree(rows);
-  const at = new Map(layout.nodes.map((n) => [n.id, n]));
+export function buildTree(host: HTMLElement, layout: TreeLayout): TreeView {
+  const at = new Map(layout.nodes.map((n) => [n.spec.id, n]));
 
   host.innerHTML = "";
   const scale = document.createElement("div");
@@ -134,21 +174,19 @@ export function buildTree(host: HTMLElement, rows: string[][]): TreeView {
 
   const nodes = new Map<string, HTMLElement>();
   for (const n of layout.nodes) {
-    const sk = SKILL_BY_ID[n.id];
-    if (!sk) continue;
     const b = document.createElement("button");
     b.className = "tnode";
-    b.dataset.node = n.id;
+    b.dataset.node = n.spec.id;
     b.style.left = `${n.x}px`;
     b.style.top = `${n.y}px`;
     b.style.width = `${NODE_W}px`;
     b.style.height = `${NODE_H}px`;
     b.innerHTML =
-      `<span class="tn">${esc(sk.name)}</span>` +
+      `<span class="tn">${esc(n.spec.name)}</span>` +
       `<span class="tl"></span>` +
       `<i class="tb"><b></b></i>`;
     inner.appendChild(b);
-    nodes.set(n.id, b);
+    nodes.set(n.spec.id, b);
   }
 
   scale.appendChild(inner);
@@ -160,47 +198,38 @@ export function buildTree(host: HTMLElement, rows: string[][]): TreeView {
 }
 
 export function paintTree(view: TreeView, opts: PaintOpts): void {
-  const picked = opts.selected ? SKILL_BY_ID[opts.selected] : undefined;
+  const at = new Map(view.layout.nodes.map((n) => [n.spec.id, n.spec]));
+  const picked = opts.selected ? at.get(opts.selected) : undefined;
   const deps = new Set(picked?.req ?? []);
+  const levels = new Map<string, number>();
 
-  for (const [id, elm] of view.nodes) {
-    const sk = SKILL_BY_ID[id];
-    if (!sk) continue;
-    const level = S.skills[id] ?? 0;
-    const maxed = level >= sk.maxLevel;
-    const unlocked = skillUnlocked(sk);
-    const balance = sk.currency === "kp" ? S.kp : S.cur[sk.currency];
-    const ready = unlocked && !maxed && balance >= skillCost(sk, level);
+  for (const n of view.layout.nodes) {
+    const elm = view.nodes.get(n.spec.id);
+    if (!elm) continue;
+    const st = opts.statusOf(n.spec);
+    levels.set(n.spec.id, st.level);
 
     elm.className =
       "tnode" +
-      (sk.gateway ? " gate" : "") +
-      (level > 0 ? " owned" : "") +
-      (maxed ? " max" : "") +
-      (!unlocked ? " locked" : ready ? " ready" : "") +
-      (id === opts.selected ? " sel" : "") +
-      (deps.has(id) ? " dep" : "");
-    elm.setAttribute("aria-pressed", String(id === opts.selected));
+      (n.spec.flavour ? ` ${n.spec.flavour}` : "") +
+      (st.level > 0 ? " owned" : "") +
+      (st.maxed ? " max" : "") +
+      (!st.unlocked ? " locked" : st.ready ? " ready" : "") +
+      (n.spec.id === opts.selected ? " sel" : "") +
+      (deps.has(n.spec.id) ? " dep" : "") +
+      (opts.highlight ? (opts.highlight.has(n.spec.id) ? " hit" : " dim") : "");
+    elm.setAttribute("aria-pressed", String(n.spec.id === opts.selected));
 
-    const label = opts.labelOf
-      ? opts.labelOf(sk, level)
-      : sk.gateway
-        ? level > 0
-          ? "open"
-          : "one-time"
-        : `${level}/${sk.maxLevel}`;
-    (elm.querySelector(".tl") as HTMLElement).textContent = label;
-
-    const filled = sk.gateway ? (level > 0 ? 100 : 0) : (level / sk.maxLevel) * 100;
+    (elm.querySelector(".tl") as HTMLElement).textContent = st.label;
+    const filled = Math.max(0, Math.min(1, st.fill)) * 100;
     (elm.querySelector(".tb>b") as HTMLElement).style.width = `${filled.toFixed(0)}%`;
   }
 
   for (const e of view.layout.edges) {
     const path = view.edges.get(e.key);
     if (!path) continue;
-    const child = SKILL_BY_ID[e.to];
-    const need = child?.reqLevel ?? 1;
-    const live = (S.skills[e.from] ?? 0) >= need;
+    const need = at.get(e.to)?.reqLevel ?? 1;
+    const live = (levels.get(e.from) ?? 0) >= need;
     const hot = e.to === opts.selected || e.from === opts.selected;
     path.setAttribute("class", "tedge" + (live ? " live" : "") + (hot ? " hot" : ""));
   }
@@ -219,4 +248,14 @@ export function fitZoom(view: TreeView, host: HTMLElement): number {
   const room = host.clientWidth - 4;
   if (room <= 0) return view.zoom;
   return setZoom(view, room / view.layout.width);
+}
+
+/** Centre one node in the viewport. Used when a search result is picked. */
+export function scrollNodeIntoView(view: TreeView, host: HTMLElement, id: string): void {
+  const n = view.layout.nodes.find((x) => x.spec.id === id);
+  if (!n) return;
+  const cx = (n.x + NODE_W / 2) * view.zoom;
+  const cy = (n.y + NODE_H / 2) * view.zoom;
+  host.scrollLeft = Math.max(0, cx - host.clientWidth / 2);
+  host.scrollTop = Math.max(0, cy - host.clientHeight / 2);
 }

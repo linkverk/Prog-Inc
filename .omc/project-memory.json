@@ -52,15 +52,27 @@
       "type": "file"
     },
     {
-      "path": ".claude\\hooks\\graphify-gate.mjs",
-      "accessCount": 2,
-      "lastAccessed": 1788454557191,
+      "path": "src\\ui\\shell.ts",
+      "accessCount": 4,
+      "lastAccessed": 1788461914044,
       "type": "file"
     },
     {
-      "path": "src\\ui\\shell.ts",
+      "path": "src\\core\\engine.ts",
+      "accessCount": 3,
+      "lastAccessed": 1788461735285,
+      "type": "file"
+    },
+    {
+      "path": "src\\core\\actions.ts",
+      "accessCount": 3,
+      "lastAccessed": 1788461736993,
+      "type": "file"
+    },
+    {
+      "path": ".claude\\hooks\\graphify-gate.mjs",
       "accessCount": 2,
-      "lastAccessed": 1788460947707,
+      "lastAccessed": 1788454557191,
       "type": "file"
     },
     {
@@ -88,16 +100,22 @@
       "type": "file"
     },
     {
-      "path": "src\\core\\engine.ts",
+      "path": "src\\ui\\tree.ts",
       "accessCount": 2,
-      "lastAccessed": 1788460965870,
+      "lastAccessed": 1788461463453,
       "type": "file"
     },
     {
-      "path": "src\\core\\actions.ts",
+      "path": "src\\ui\\treemodel.ts",
       "accessCount": 2,
-      "lastAccessed": 1788460966005,
+      "lastAccessed": 1788461717707,
       "type": "file"
+    },
+    {
+      "path": "src",
+      "accessCount": 2,
+      "lastAccessed": 1788461894017,
+      "type": "directory"
     },
     {
       "path": "package.json",
@@ -136,12 +154,6 @@
       "type": "file"
     },
     {
-      "path": "src\\ui\\tree.ts",
-      "accessCount": 1,
-      "lastAccessed": 1788460950375,
-      "type": "file"
-    },
-    {
       "path": "src\\data\\generators.ts",
       "accessCount": 1,
       "lastAccessed": 1788460957352,
@@ -158,6 +170,24 @@
       "accessCount": 1,
       "lastAccessed": 1788461018691,
       "type": "file"
+    },
+    {
+      "path": "C:\\Users\\Gebruiker\\.claude\\plans\\make-a-plan-and-vectorized-meadow.md",
+      "accessCount": 1,
+      "lastAccessed": 1788461267073,
+      "type": "file"
+    },
+    {
+      "path": "src\\ui\\treetab.ts",
+      "accessCount": 1,
+      "lastAccessed": 1788461874762,
+      "type": "file"
+    },
+    {
+      "path": "",
+      "accessCount": 1,
+      "lastAccessed": 1788461923414,
+      "type": "directory"
     }
   ],
   "userDirectives": []
