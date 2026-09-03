@@ -9,7 +9,7 @@
     "runtime": null
   },
   "build": {
-    "buildCommand": null,
+    "buildCommand": "cd \"D:/GitHub/Prog Inc\" && git status --short && echo \"=== rebuild ===\" && npm run build 2>&1 | tail -8",
     "testCommand": null,
     "lintCommand": null,
     "devCommand": null,
@@ -32,6 +32,31 @@
   },
   "customNotes": [],
   "directoryMap": {},
-  "hotPaths": [],
+  "hotPaths": [
+    {
+      "path": "PLAN.md",
+      "accessCount": 3,
+      "lastAccessed": 1788455707157,
+      "type": "file"
+    },
+    {
+      "path": ".claude\\hooks\\graphify-gate.mjs",
+      "accessCount": 2,
+      "lastAccessed": 1788454557191,
+      "type": "file"
+    },
+    {
+      "path": "package.json",
+      "accessCount": 1,
+      "lastAccessed": 1788455505180,
+      "type": "file"
+    },
+    {
+      "path": "tsconfig.json",
+      "accessCount": 1,
+      "lastAccessed": 1788455525314,
+      "type": "file"
+    }
+  ],
   "userDirectives": []
 }

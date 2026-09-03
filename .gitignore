@@ -1,0 +1,12 @@
+# Claude Code local tooling state (see setupBase.md §9)
+.omc/
+.codegraph/
+.claude/settings.local.json
+.claude/skills/gstack/
+graphify-out/
+
+# Node
+node_modules/
+dist/
+*.local
+.DS_Store

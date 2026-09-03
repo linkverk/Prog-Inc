@@ -1,13 +1,11 @@
-type LogClass = "" | "good" | "bad" | "hi";
-type Listener = (text: string, cls: LogClass) => void;
+import { defineConfig } from "vite";
 
-const listeners: Listener[] = [];
-
-/** Minimal pub/sub so core never imports the UI. */
-export function onLog(fn: Listener): void {
-  listeners.push(fn);
-}
-
-export function log(text: string, cls: LogClass = ""): void {
-  for (const fn of listeners) fn(text, cls);
-}
+export default defineConfig({
+  base: "./",
+  server: { port: 5173, open: true },
+  build: {
+    outDir: "dist",
+    target: "es2020",
+    sourcemap: true,
+  },
+});
