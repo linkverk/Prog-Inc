@@ -80,3 +80,13 @@ skills, career, awards, hop, stats, settings) with progressive reveal driven by
 view-state note now covers `page` and `seen[]`, and the section-5 open question records that
 `ui/pages/career.ts` and `ui/pages/awards.ts` now exist and `ui/panels.ts` is gone. Tools is
 documented as the one deliberate second view of the 12 generators. Content counts untouched.
+
+## [2026-09-04] ingest | the web became a necklace, and every node sells itself
+
+`layoutRadial` rewritten around clusters (`src/ui/tree.ts`, `src/ui/treegraph.ts`): hubs,
+gateways and taps lay their subtree out on their own — rings, or a grid for leaf-only hubs —
+and ride one necklace around the centre. Angle by `asin(footprint / radius)`, not by leaves.
+Each branch gained an upgrade shelf hub (802 nodes, 801 tree edges). Nodes carry a buy
+button driven by `S.bulk`, `B` / `Shift+B` on the keyboard, a tooltip with the lock reason;
+the detail panel moved beside the map. [[overview]] "The web" and "Density and size" carry
+the new measurements. Content counts untouched.

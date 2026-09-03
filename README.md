@@ -84,16 +84,23 @@ twelve tools the tree sells; the two never disagree on a count or a price.
 
 **One tree, not three shops.** Everything you can buy — 300 skills, 450 upgrades, 12 tools —
 is one graph on the **Skills** page, wired by what unlocks what. Zoom with the buttons, drag
-the canvas around, buy from the panel underneath: `+1 / +10 / Max` for a skill,
-`×1 / ×10 / Max` for a tool, one **Buy** for an upgrade.
+the canvas around, buy on the node itself or from the panel beside the map: `+1 / +10 / Max`
+for a skill, `×1 / ×10 / Max` for a tool, one **Buy** for an upgrade.
 
-**Web** is the default view: you in the middle, and 794 nodes fanning out in rings — your
-tools, the money ladders, your rank ladder and the eight branches. A chevron folds a whole
-region away, so the map starts as sixteen nodes and grows where you look. Ranks, the seven
-specialisations and the two taps (lines typed by hand, bugs squashed) are on the map too,
-which is how "needs rank 7" becomes a line you can follow. Anything that is not a
-parent–child link arcs across the centre, and the chips under the zoom buttons switch those
-families on and off: `requires`, `currency` (a branch skill paying a *different* branch),
+**Web** is the default view: you in the middle, and 802 nodes around you — your tools, the
+money ladders, your rank ladder and the eight branches. Everything you open becomes its own
+cluster on one necklace around you: an opened branch is a ring of tiers around its gateway,
+an opened ladder a grid under its hub, and nothing you open pushes anything else away. A
+chevron folds a region away, so the map starts as sixteen nodes and grows where you look.
+**Every node sells itself**: the button on it shows the price and buys `×1 / ×10 / Max`
+(the switch beside the zoom buttons), `B` buys the selected node from the keyboard, and the
+tooltip says what a locked node still needs. The detail panel with the description and the
+edges sits beside the map.
+
+Ranks, the seven specialisations and the two taps (lines typed by hand, bugs squashed) are
+on the map too, which is how "needs rank 7" becomes a line you can follow. Anything that is
+not a parent–child link arcs across the centre, and the chips under the zoom buttons switch
+those families on and off: `requires`, `currency` (a branch skill paying a *different* branch),
 `rivalry` (Craft and Security fighting over the same bugs), `career`, `affects`. Whatever
 the chips say, selecting a node lights every edge it owns.
 

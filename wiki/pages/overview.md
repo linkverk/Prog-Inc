@@ -67,9 +67,27 @@ mystery, and a tool upgrade visibly hangs off the tool it needs 25 of.
 The layered view above is now the *second* mode. The default is a radial map
 (`src/ui/treegraph.ts` builds it, `layoutRadial` in `src/ui/tree.ts` places it): you at the
 centre, four folds around you — Setup, Upgrades, Career, Foundation — and the branches
-beyond. **794 nodes**: the 762 purchasable ones plus the centre, six folds, sixteen ranks,
-seven specialisations and two taps. Ranks and taps are a node kind of their own, `anchor`:
-nothing buys them, and they exist so `reqRank` stops being prose.
+beyond. **802 nodes**: the 762 purchasable ones plus the centre, fourteen folds (six hubs and
+one upgrade shelf per branch, `an:hub:branch:<id>`), sixteen ranks, seven specialisations
+and two taps. Ranks and taps are a node kind of their own, `anchor`: nothing buys them, and
+they exist so `reqRank` stops being prose.
+
+Since 2026-09-04 the map is a **necklace of clusters** rather than one set of global rings.
+Hubs, branch gateways and taps are marked `cluster` in `src/ui/treegraph.ts`; an open
+cluster is laid out on its own (`place` / `fan` / `block` in `src/ui/tree.ts`) and rides as
+one circle on a single ring around the centre, in tree order, with an arc back to its
+parent. A hub whose children are all leaves — a money ladder, a tap, a specialisation, a
+branch's upgrade shelf — is a `block`: a grid under the hub. Inside a `fan`, angle is handed
+out by what a box needs where it sits (`arc`, an `asin` of footprint over radius), not in
+proportion to leaves. The old scheme let one crowded ring push every other sector outwards;
+a cluster cannot touch another cluster's rings.
+
+**Every node sells itself.** `paintTree` takes a `buyLabel` and a `title` (`src/ui/tree.ts`);
+`src/ui/treetab.ts` supplies them from `statusOf`, `priceLabel`, `bulkPrice`,
+`affordableLevels`. The button buys `S.bulk` (the `×1 / ×10 / Max` switch, shared with the
+Tools page), `B` buys the picked node, `Shift+B` buys max; anchors, maxed and locked nodes
+have no button, and the tooltip carries `lockReason`. The detail panel moved into the left
+column beside the map.
 
 The hierarchy is derived, not authored — a skill's parent is `req[0]`, so a branch trunk
 falls out of the data and every other prerequisite becomes an arc. Arcs bow towards the
@@ -77,7 +95,7 @@ centre, which is what makes forty cross-branch links legible instead of felt.
 
 | family | joins | count |
 |---|---|---|
-| `tree` | parent → child | 793 |
+| `tree` | parent → child | 801 |
 | `requires` | a `Skill.req` that is not the parent | 80 |
 | `career` | rank → the upgrades it gates | 202 |
 | `affects` | skill → tools it multiplies, `cheaper` skills → Setup | 67 |
@@ -90,21 +108,34 @@ families are drawn, node density, plus the last page and which pages have been v
 lives in `localStorage` under `zero10x.view.v1` (`src/ui/viewstore.ts`), kept out of the
 save so `zero10x.save.v3` needs no migration.
 
-### Density
+### Density and size
 
 Both layouts read one `Metrics` object (`src/ui/tree.ts`) with two presets, switched beside
-the zoom buttons: **tight** (default) and **normal**. Tight roughly halves every gap —
-overview 1303 → 1143 px, an opened Craft 2523 → 2219, the flat Craft layer 1124 → 1058,
-nearest-neighbour gap 16 → 6 px — with zero overlapping boxes in either preset.
+the zoom buttons: **tight** (default) and **normal**. Measured 2026-09-04 with the necklace
+layout, 124×52 boxes, headless Chromium at 1440×900 (scratch `measure.cjs`, five shapes,
+both presets, zero overlapping boxes in all ten):
 
-Two invariants the presets must not touch, both learned from a failed attempt:
+| shape (nodes) | tight | normal | before (tight, 2026-09-03) |
+|---|---|---|---|
+| fresh save (16) | 1 555 px | 1 779 | 1 143 |
+| Craft gateway open (26) | 1 470 | 1 680 | 2 219 |
+| Craft + Systems open (36) | 1 600 | 1 766 | ≈ 3 000 |
+| Upgrades + Output ladder open (93) | 2 847 | 3 372 | (unmeasured) |
+| Setup open (28) | 1 647 | 1 877 | — |
 
-- **angle stays proportional to leaves.** Sharing the circle by `leaves^0.5` shrinks the
-  folded overview but narrows an opened branch's wedge, which pushes its ring outwards:
-  Craft grew 2366 → 3586 px. Reverted.
-- **clearance is measured on the diagonal.** Half the longer side is not enough — two boxes
-  on a nearly horizontal arc meet corner-first. `reach()` and the arc rule both use
-  `hypot(w, h) / 2`.
+Nearest-neighbour gap 6–19 px tight, 12–28 normal. Fit is floored at 60% (`WEB_FIT_MIN`),
+so the smallest on-screen box is 74 px wide and a name stays a name; the fresh save is the
+one shape that grew, because Foundation is now a real circle of eleven gateways instead of
+a ring shared with the hubs.
+
+Two invariants the presets must not touch:
+
+- **clearance is measured on the diagonal.** Half the longer side is not enough — two
+  axis-aligned boxes on a nearly horizontal arc meet corner-first. Footprints and ring gaps
+  use `hypot(w, h) / 2`.
+- **circles do not nest.** Laying an open cluster out inside its parent's circle was tried
+  first on 2026-09-04: every level doubled the map (Craft open: 3 051 px). One necklace,
+  tree order, arcs to parents — that is the whole trick.
 
 ## Verified content counts
 

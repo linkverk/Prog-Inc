@@ -9,7 +9,7 @@
     "runtime": null
   },
   "build": {
-    "buildCommand": "M=\"C:/Users/Gebruiker/.claude/projects/D--GitHub-Prog-Inc/memory\"; cat > \"$M/multipage-refactor-in-progress.md\" <<'EOF'\n---\nname: multipage-refactor-in-progress\ndescription: Zero to Ten-X one-page → multi-page refactor (sidebar, 8 pages, progressive reveal) finished 2026-09-04; only the docs commit was left uncommitted\nmetadata:\n  type: project\n---\n\nBetween 2026-09-03 and 2026-09-04 the game was restructured from one page with tabs into a\nsidebar + 8 pages (desk, tools, skills, career, awards, hop, stats, settings) with progressive\npage reveal (`src/core/unlocks.ts`), toasts and a quick dock. Code landed in `884f6ef` +\n`cf311cf` (user commits). On 2026-09-04 the mid-game headless smoke passed and the docs were\nsynced (PLAN.md §3 \"Pages\" + §5, README, wiki overview + `concepts/progressive-reveal.md`,\nindex, log, TASKS.md); that docs batch was left in the working tree for the user to commit.\n\n**Why:** the user asked for a pro game-dev review and a \"more-page\" game. User decisions:\nleft sidebar, progressive unlock, flat Tools page as the one second view of generators.\n\n**How to apply:** the plan file `~/.claude/plans/make-a-review-and-compressed-shamir.md` is\nhistorical now. Open knobs the user may want to tune: unlock thresholds in\n`src/core/unlocks.ts` (never play-tested) and locked tier-chip look in `src/ui/pages/tools.ts`\n`tierChip()`. Headless testing: playwright-core from the npx cache +\n`chromium_headless_shell-1223`; inject saves with `context.addInitScript` (a plain\n`localStorage.setItem` + reload gets overwritten by `beforeunload` save); a rank ≥3 save with\nno track needs `trackDeferred: true` or the specialisation modal blocks nav clicks.\nEOF\nsed -i 's|- \\[Multi-page refactor in progress\\](multipage-refactor-in-progress.md) — .*|- [Multi-page refactor](multipage-refactor-in-progress.md) — done 2026-09-04; open tuning knobs and headless-test gotchas|' \"$M/MEMORY.md\"; cat \"$M/MEMORY.md\"\ncat >> \"C:/Users/Gebruiker/.claude/plans/make-a-review-and-compressed-shamir.md\" <<'EOF'\n\n## Status — 2026-09-04 (complete)\n\nSteps 1–11 done. Code committed by the user (`884f6ef`, `cf311cf`). Mid-game smoke passed\n(all pages, hash restore, dock, mobile 4+More, no console errors). `npm run build` green,\n`npm run stats` unchanged. Docs batch (PLAN.md, README.md, wiki ×4, TASKS.md) left in the\nworking tree for the user to commit.\nEOF",
+    "buildCommand": "cd \"D:/GitHub/Prog Inc\" && npm run build 2>&1 | grep -c \"built in\"; git status --short | grep -v obsidian | cut -c1-60; M=\"C:/Users/Gebruiker/.claude/projects/D--GitHub-Prog-Inc/memory\"; cat > \"$M/skills-web-necklace-layout.md\" <<'EOF'\n---\nname: skills-web-necklace-layout\ndescription: 2026-09-04 Skills page rewrite — necklace-of-clusters radial layout, buy-on-node, measurement harness; what was tried and rejected\nmetadata:\n  type: project\n---\n\nOn 2026-09-04 the Skills web was rebuilt: open clusters (hubs, branch gateways, taps) lay out\non their own and sit on one necklace around You; leaf-only hubs are grids; every purchasable\nnode has a buy button driven by `S.bulk` (`×1/×10/Max` in the zoombar, `B`/`Shift+B`); the\ndetail panel lives in the left column. Left uncommitted for the user (code + PLAN/README/wiki/\nTASKS). Measured: Craft open 2219 → 1470 px, fresh 1143 → 1555 (Foundation is a real circle\nnow), zero overlaps both densities.\n\n**Why:** user asked for a readable, dense, interactive map with buying on it; chose\n\"buy on node\" + \"compact radial\" over clusters-as-blocks or Layers-as-default.\n\n**How to apply:** do not nest cluster circles inside parent circles — tried first, every\nlevel doubled the map (Craft 3051 px). Axis-aligned boxes need diagonal clearance between\nrings (~148 px per tier), so a branch's radial depth is inherent; compactness comes from\npacking angle by `asin(footprint/r)` and from the necklace. Measurement script pattern:\nscratch `measure.cjs` (playwright-core from npx cache + chromium_headless_shell-1223,\n`addInitScript` seeds `zero10x.save.v3` and `zero10x.view.v1`, reads `.treeinner` size and\nnode boxes for overlaps). Open knobs: shape table in `treegraph.ts build()` (Career is a fan),\nunaffordable button shows dim price (`buyLabel` in `treetab.ts`). See [[multipage-refactor-in-progress]].\nEOF\necho \"- [Skills web necklace layout](skills-web-necklace-layout.md) — 2026-09-04 radial rewrite + buy-on-node; rejected approaches and measurement harness\" >> \"$M/MEMORY.md\"\ncat >> \"C:/Users/Gebruiker/.claude/plans/improve-skills-tab-for-wiggly-magpie.md\" <<'EOF'\n\n## Status — 2026-09-04 (complete, uncommitted)\n\nImplemented steps 1–5 with one design change: nested cluster circles (as planned) doubled\nthe map per level, so open clusters are flattened onto **one necklace** around You in tree\norder (see wiki overview \"Density and size\" for the numbers). Buy-on-node, bulk switch,\n`B`/`Shift+B`, tooltips, side detail panel, Layers-mode goTo fix. Build green, stats unchanged.\nEOF\necho done",
     "testCommand": null,
     "lintCommand": null,
     "devCommand": null,
@@ -35,20 +35,26 @@
   "hotPaths": [
     {
       "path": "src\\ui\\treemodel.ts",
-      "accessCount": 29,
-      "lastAccessed": 1788468766760,
+      "accessCount": 30,
+      "lastAccessed": 1788474541926,
       "type": "file"
     },
     {
       "path": "src\\ui\\tree.ts",
-      "accessCount": 23,
-      "lastAccessed": 1788468729695,
+      "accessCount": 30,
+      "lastAccessed": 1788475322105,
       "type": "file"
     },
     {
       "path": "src\\ui\\treetab.ts",
-      "accessCount": 17,
-      "lastAccessed": 1788468743501,
+      "accessCount": 23,
+      "lastAccessed": 1788475912080,
+      "type": "file"
+    },
+    {
+      "path": "src\\ui\\treegraph.ts",
+      "accessCount": 21,
+      "lastAccessed": 1788475402894,
       "type": "file"
     },
     {
@@ -64,12 +70,6 @@
       "type": "file"
     },
     {
-      "path": "src\\ui\\treegraph.ts",
-      "accessCount": 13,
-      "lastAccessed": 1788468744318,
-      "type": "file"
-    },
-    {
       "path": "C:\\Users\\GEBRUI~1\\AppData\\Local\\Temp\\claude\\D--GitHub-Prog-Inc\\8ab29a83-d550-4cc1-af46-4b23b8ce3908\\scratchpad\\cdp3.mjs",
       "accessCount": 11,
       "lastAccessed": 1788464271750,
@@ -80,6 +80,12 @@
       "accessCount": 10,
       "lastAccessed": 1788468738738,
       "type": "file"
+    },
+    {
+      "path": "src",
+      "accessCount": 9,
+      "lastAccessed": 1788475928436,
+      "type": "directory"
     },
     {
       "path": "",
@@ -142,6 +148,12 @@
       "type": "file"
     },
     {
+      "path": "src\\ui\\dom.ts",
+      "accessCount": 5,
+      "lastAccessed": 1788474553585,
+      "type": "file"
+    },
+    {
       "path": "C:\\Users\\Gebruiker\\.claude\\plans\\enumerated-discovering-scone.md",
       "accessCount": 4,
       "lastAccessed": 1788460935991,
@@ -176,18 +188,6 @@
       "accessCount": 4,
       "lastAccessed": 1788468739763,
       "type": "file"
-    },
-    {
-      "path": "src\\ui\\dom.ts",
-      "accessCount": 4,
-      "lastAccessed": 1788468745211,
-      "type": "file"
-    },
-    {
-      "path": "src",
-      "accessCount": 4,
-      "lastAccessed": 1788468752812,
-      "type": "directory"
     },
     {
       "path": "src\\core\\save.ts",

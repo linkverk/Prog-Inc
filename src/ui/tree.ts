@@ -26,10 +26,8 @@ export type Density = "tight" | "normal";
 /**
  * Everything that decides how much air sits between nodes.
  *
- * Sharing the circle by the *square root* of a subtree's leaves was tried and reverted: it
- * does shrink the folded overview, but it narrows the wedge of an opened branch, which
- * pushes that branch's own ring much further out — an opened Craft grew from 2366 px to
- * 3586 px. Angle stays proportional to leaves; density is gaps only.
+ * The radial layout hands out angle by what a box needs where it sits (`arc`), so these are
+ * the only knobs: density is gaps, never shares of the circle.
  */
 interface Metrics {
   gapX: number;
@@ -55,19 +53,21 @@ export function setDensity(d: Density): void {
 /** how hard a cross-link is pulled towards the centre; 0 = straight chord, 1 = through it */
 const BUNDLE = 0.74;
 const SIZES: Array<[number, number]> = [
-  [150, 70], // you
-  [140, 60], // hubs
-  [112, 46], // everything further out
+  [150, 72], // you
+  [140, 62], // hubs
+  [124, 52], // everything further out: two lines of name, a level, a buy button
 ];
 
-/** Low enough that an opened branch still fits on screen as a shape. */
-export const ZOOM_MIN = 0.25;
+/** Far enough out to see a whole opened branch as a shape; names go at this distance. */
+export const ZOOM_MIN = 0.35;
 export const ZOOM_MAX = 1.4;
 /**
  * Fitting a wide layout must not shrink the labels into a mosaic — a twelve-column layer
- * scrolls sideways instead. The web opts out: at overview zoom its shape is the point.
+ * scrolls sideways instead.
  */
 export const FIT_MIN = 0.6;
+/** The web fits both ways, but never below the point where a name stops being a name. */
+export const WEB_FIT_MIN = 0.6;
 
 /** The slice of a node the canvas needs. `treemodel` adds the rest. */
 export interface TreeNodeSpec {
@@ -100,9 +100,11 @@ export interface TreeNode {
   w: number;
   h: number;
   depth: number;
-  /** polar position, radial layout only — edges need it to bend along the ring */
+  /** polar position around `hub`, radial layout only — edges need it to bend along the ring */
   r?: number;
   a?: number;
+  /** the centre this node was laid out around: its cluster's, not the map's */
+  hub?: { x: number; y: number };
   /** has children that could be folded away */
   foldable?: boolean;
   open?: boolean;
@@ -131,6 +133,13 @@ export interface WebNode {
   children: WebNode[];
   /** false hides the whole subtree behind a chevron */
   open: boolean;
+  /**
+   * Lays its subtree out on its own and shows to its parent as one circle, so nothing
+   * outside it can push its rings about. Hubs and branch gateways are clusters.
+   */
+  cluster?: boolean;
+  /** `block` packs leaf children into a grid under the node; `fan` is rings (the default) */
+  shape?: "fan" | "block";
 }
 
 export interface TreeView {
@@ -150,6 +159,10 @@ export interface PaintOpts {
   /** edge families to draw; "tree" is always drawn, and so is anything touching the
    *  selected node — a switched-off family still answers "what is this wired to?" */
   families?: Set<string> | null;
+  /** the buy button on the node: its text and whether it is enabled; null hides it */
+  buyLabel?: (spec: TreeNodeSpec) => { text: string; on: boolean } | null;
+  /** native tooltip: description, price, why it is locked */
+  title?: (spec: TreeNodeSpec) => string;
 }
 
 /* ---------------------------------------------------------------- *
@@ -234,113 +247,248 @@ export function layoutColumns(lanes: TreeNodeSpec[][]): TreeLayout {
  *  Radial layout — the web
  * ---------------------------------------------------------------- */
 
-interface Placed {
+/* ---------------------------------------------------------------- *
+ *  Radial layout — clusters of rings
+ * ---------------------------------------------------------------- */
+
+/** A laid-out subtree: items relative to the circle's centre, and how big the circle is. */
+interface Sub {
+  /** footprint radius — the necklace treats the whole subtree as this circle */
+  F: number;
+  /** the first item is the subtree's own root */
+  items: TreeNode[];
+}
+
+/** One node of a fan, with what it needs from its ring. */
+interface Member {
   node: WebNode;
   depth: number;
+  /** half-diagonal of the box */
+  F: number;
+  children: Member[];
   angle: number;
-  /** the wedge this node owns, in radians — how much room it has along its ring */
   span: number;
 }
 
-/** Leaves under a node, counting a folded node as one — that is what it looks like. */
-function leaves(n: WebNode): number {
-  if (!n.open || n.children.length === 0) return 1;
-  return n.children.reduce((a, c) => a + leaves(c), 0);
+const sizeAt = (depth: number) => SIZES[Math.min(depth, SIZES.length - 1)];
+const isCluster = (n: WebNode) => !!n.cluster && n.open && n.children.length > 0;
+/** the angle a circle of radius F takes up on a ring of radius r, gap included */
+const arc = (F: number, r: number) => 2 * Math.asin(Math.min(1, (F + M.arcGap / 2) / r));
+
+function boxItem(n: WebNode, depth: number, x: number, y: number): TreeNode {
+  const [w, h] = sizeAt(depth);
+  return { spec: n.spec, x: x - w / 2, y: y - h / 2, w, h, depth, foldable: n.children.length > 0, open: n.open };
 }
 
-const sizeAt = (depth: number) => SIZES[Math.min(depth, SIZES.length - 1)];
+function shift(items: TreeNode[], dx: number, dy: number): TreeNode[] {
+  for (const it of items) {
+    it.x += dx;
+    it.y += dy;
+    if (it.hub) it.hub = { x: it.hub.x + dx, y: it.hub.y + dy };
+  }
+  return items;
+}
 
 /**
- * Rings out from the centre, each subtree owning an angular slice proportional to how many
- * leaves it shows. A ring is pushed out far enough that its nodes fit round it, so opening
- * a big branch grows the map rather than overlapping it.
+ * Lay a subtree out on its own. Any open cluster inside it is *not* drawn here: it is
+ * handed back through `sats`, in tree order, to become a satellite of the centre. Circles
+ * inside circles doubled the map with every level; one necklace of circles does not.
  */
-export function layoutRadial(root: WebNode, all: TreeEdge[]): TreeLayout {
-  const placed: Placed[] = [];
-
-  const walk = (n: WebNode, depth: number, from: number, to: number): void => {
-    placed.push({ node: n, depth, angle: (from + to) / 2, span: to - from });
-    if (!n.open || n.children.length === 0) return;
-    const total = n.children.reduce((a, c) => a + leaves(c), 0) || 1;
-    let cursor = from;
-    for (const c of n.children) {
-      const span = ((to - from) * leaves(c)) / total;
-      walk(c, depth + 1, cursor, cursor + span);
-      cursor += span;
+function place(n: WebNode, depth: number, sats: Sub[]): Sub {
+  const [w, h] = sizeAt(depth);
+  if (!n.open || n.children.length === 0) {
+    return { F: Math.hypot(w, h) / 2, items: [boxItem(n, depth, 0, 0)] };
+  }
+  const kept: WebNode[] = [];
+  for (const c of n.children) {
+    if (!isCluster(c)) {
+      kept.push(c);
+      continue;
     }
+    const mine: Sub[] = [];
+    const sub = place(c, depth, mine);
+    sats.push(sub, ...mine);
+  }
+  if (kept.length === 0) return { F: Math.hypot(w, h) / 2, items: [boxItem(n, depth, 0, 0)] };
+  const leafy = kept.every((c) => !c.open || c.children.length === 0);
+  return n.shape === "block" && leafy ? block(n, kept, depth) : fan(n, kept, depth, sats);
+}
+
+/** A grid under its hub: forty upgrades in a row read as a shop, not as a halo. */
+function block(n: WebNode, kept: WebNode[], depth: number): Sub {
+  const [w0, h0] = sizeAt(depth);
+  const [w, h] = sizeAt(depth + 1);
+  const k = kept.length;
+  // as many columns as make the grid roughly square, so it packs into its circle
+  const cols = Math.max(1, Math.min(k, Math.ceil(Math.sqrt((k * (h + M.gapY)) / (w + M.gapX)))));
+  const rows = Math.ceil(k / cols);
+  const gridW = cols * w + (cols - 1) * M.gapX;
+  const gridH = rows * h + (rows - 1) * M.gapY;
+  const totalW = Math.max(w0, gridW);
+  const totalH = h0 + M.ringGap + gridH;
+  const top = -totalH / 2;
+  const items: TreeNode[] = [boxItem(n, depth, 0, top + h0 / 2)];
+  kept.forEach((c, i) => {
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+    const x = -gridW / 2 + col * (w + M.gapX) + w / 2;
+    const y = top + h0 + M.ringGap + row * (h + M.gapY) + h / 2;
+    items.push(boxItem(c, depth + 1, x, y));
+  });
+  return { F: Math.hypot(totalW / 2, totalH / 2) + M.pad, items };
+}
+
+/**
+ * Rings around a root. A ring is only as wide as the boxes on it need, and a subtree gets
+ * the angle its own boxes take up — not a share of the circle proportional to its leaves,
+ * which is what used to spread a handful of nodes around a whole quadrant.
+ */
+function fan(n: WebNode, kept: WebNode[], depth: number, sats: Sub[]): Sub {
+  const [w0, h0] = sizeAt(depth);
+  const F0 = Math.hypot(w0, h0) / 2;
+
+  const member = (c: WebNode, d: number): Member => {
+    const [w, h] = sizeAt(depth + d);
+    const m: Member = { node: c, depth: d, F: Math.hypot(w, h) / 2, children: [], angle: 0, span: 0 };
+    if (c.open) {
+      for (const cc of c.children) {
+        if (!isCluster(cc)) {
+          m.children.push(member(cc, d + 1));
+          continue;
+        }
+        const mine: Sub[] = [];
+        const sub = place(cc, depth + d + 1, mine);
+        sats.push(sub, ...mine);
+      }
+    }
+    return m;
   };
-  // start at the top and go clockwise; a full turn for the root's children
-  walk(root, 0, -Math.PI / 2, Math.PI * 1.5);
+  const top = kept.map((c) => member(c, 1));
 
-  const maxDepth = placed.reduce((a, p) => Math.max(a, p.depth), 0);
+  const maxF: number[] = [F0];
+  const visit = (m: Member): void => {
+    maxF[m.depth] = Math.max(maxF[m.depth] ?? 0, m.F);
+    m.children.forEach(visit);
+  };
+  top.forEach(visit);
+  const maxDepth = maxF.length - 1;
 
-  /**
-   * A ring has to satisfy two things at once: clear the boxes on the ring inside it, and be
-   * long enough that the narrowest wedge on it still fits its own node. Averaging over the
-   * ring is not enough — one crowded sector would overlap while a sparse one wasted room.
-   */
-  // half the diagonal, not half the longer side: two boxes on neighbouring rings meet at
-  // an angle, and the longer side alone lets a corner slip inside its neighbour
-  const reach = (d: number) => Math.hypot(...sizeAt(d)) / 2;
+  // a ring clears the ring inside it; it may have to grow to seat everything on it
   const radii: number[] = [0];
-  for (let d = 1; d <= maxDepth; d++) {
-    // the same diagonal argument: neighbours separated along a nearly horizontal arc have
-    // almost no vertical gap, so clearing the width alone is not enough
-    const span1 = Math.hypot(...sizeAt(d));
-    let tightest = 0;
-    for (const p of placed) {
-      if (p.depth !== d) continue;
-      tightest = Math.max(tightest, (span1 + M.arcGap) / Math.max(p.span, 1e-4));
-    }
-    radii[d] = Math.max(radii[d - 1] + reach(d - 1) + reach(d) + M.ringGap, tightest);
+  for (let d = 1; d <= maxDepth; d++) radii[d] = radii[d - 1] + maxF[d - 1] + maxF[d] + M.ringGap;
+
+  const spans = (m: Member): number => {
+    const own = arc(m.F, radii[m.depth]);
+    const kids = m.children.reduce((a, c) => a + spans(c), 0);
+    m.span = Math.max(own, kids);
+    return m.span;
+  };
+  let total = top.reduce((a, m) => a + spans(m), 0);
+  for (let i = 0; i < 16 && total > 2 * Math.PI; i++) {
+    const k = total / (2 * Math.PI);
+    for (let d = 1; d <= maxDepth; d++) radii[d] *= k;
+    total = top.reduce((a, m) => a + spans(m), 0);
   }
 
-  const rMax = radii[maxDepth] ?? 0;
-  const [outerW, outerH] = sizeAt(maxDepth);
-  const half = rMax + Math.max(outerW, outerH) / 2 + M.pad;
-  const width = half * 2;
-  const height = half * 2;
+  // hand out the angle: each member its span, leftover shared evenly, start at the top
+  const distribute = (ms: Member[], from: number, to: number): void => {
+    if (ms.length === 0) return;
+    const extra = (to - from - ms.reduce((a, m) => a + m.span, 0)) / ms.length;
+    let cursor = from;
+    for (const m of ms) {
+      const wedge = m.span + extra;
+      m.angle = cursor + wedge / 2;
+      distribute(m.children, cursor, cursor + wedge);
+      cursor += wedge;
+    }
+  };
+  distribute(top, -Math.PI / 2, Math.PI * 1.5);
 
-  const nodes: TreeNode[] = placed.map((p) => {
-    const [w, h] = sizeAt(p.depth);
-    const r = radii[p.depth];
-    return {
-      spec: p.node.spec,
-      x: half + r * Math.cos(p.angle) - w / 2,
-      y: half + r * Math.sin(p.angle) - h / 2,
-      w,
-      h,
-      depth: p.depth,
-      r,
-      a: p.angle,
-      foldable: p.node.children.length > 0,
-      open: p.node.open,
-    };
-  });
+  const items: TreeNode[] = [boxItem(n, depth, 0, 0)];
+  let F = F0;
+  const emit = (m: Member): void => {
+    const r = radii[m.depth];
+    F = Math.max(F, r + m.F);
+    const it = boxItem(m.node, depth + m.depth, r * Math.cos(m.angle), r * Math.sin(m.angle));
+    it.r = r;
+    it.a = m.angle;
+    it.hub = { x: 0, y: 0 };
+    items.push(it);
+    m.children.forEach(emit);
+  };
+  top.forEach(emit);
 
+  return { F: F + M.pad, items };
+}
+
+/**
+ * You in the middle; everything else on one necklace around you. A closed hub is a box on
+ * it, an open cluster is a circle on it, and a cluster that lives deep in the tree — an
+ * opened branch, an opened ladder — sits right after the cluster that contains it, joined
+ * to its parent by an arc. Circles of different sizes ride at different radii: each one is
+ * pushed out just far enough to clear the centre, and neighbours are kept apart by the
+ * angle their circles take up where they sit.
+ */
+export function layoutRadial(root: WebNode, all: TreeEdge[]): TreeLayout {
+  const [w0, h0] = sizeAt(0);
+  const F0 = Math.hypot(w0, h0) / 2;
+  const subs: Sub[] = [];
+  for (const c of root.children) {
+    const mine: Sub[] = [];
+    subs.push(place(c, 1, mine), ...mine);
+  }
+
+  let base = F0 + M.ringGap;
+  const radius = (s: Sub) => base + s.F;
+  let total = subs.reduce((a, s) => a + arc(s.F, radius(s)), 0);
+  for (let i = 0; i < 24 && total > 2 * Math.PI; i++) {
+    base *= Math.max(1.02, total / (2 * Math.PI));
+    total = subs.reduce((a, s) => a + arc(s.F, radius(s)), 0);
+  }
+
+  const items: TreeNode[] = [boxItem(root, 0, 0, 0)];
+  let F = F0;
+  const extra = Math.max(0, 2 * Math.PI - total) / Math.max(1, subs.length);
+  let cursor = -Math.PI / 2;
+  for (const s of subs) {
+    const r = radius(s);
+    const wedge = arc(s.F, r) + extra;
+    const a = cursor + wedge / 2;
+    cursor += wedge;
+    shift(s.items, r * Math.cos(a), r * Math.sin(a));
+    const head = s.items[0];
+    head.r = Math.hypot(cx(head), cy(head));
+    head.a = Math.atan2(cy(head), cx(head));
+    head.hub = { x: 0, y: 0 };
+    F = Math.max(F, r + s.F);
+    items.push(...s.items);
+  }
+  F += M.pad;
+
+  const nodes = shift(items, F, F);
   const here = new Set(nodes.map((n) => n.spec.id));
   const edges = all.filter((e) => here.has(e.from) && here.has(e.to));
-
-  const centre = { x: half, y: half };
+  const centre = { x: F, y: F };
   const pathOf = (a: TreeNode, b: TreeNode, family: string) =>
-    family === "tree" ? radialPath(a, b, centre) : bundledPath(a, b, centre);
+    family === "tree" ? treePath(a, b) : bundledPath(a, b, centre);
 
-  return { nodes, edges, width, height, pathOf };
+  return { nodes, edges, width: F * 2, height: F * 2, pathOf };
 }
 
 const cx = (n: TreeNode) => n.x + n.w / 2;
 const cy = (n: TreeNode) => n.y + n.h / 2;
 
-/** Parent to child: leave along the ring, arrive along the spoke. */
-function radialPath(a: TreeNode, b: TreeNode, centre: { x: number; y: number }): string {
-  if (a.r === undefined || b.r === undefined || a.a === undefined || b.a === undefined) {
-    return `M ${cx(a)} ${cy(a)} L ${cx(b)} ${cy(b)}`;
-  }
-  const mid = (a.r + b.r) / 2;
-  const c1x = centre.x + mid * Math.cos(a.a);
-  const c1y = centre.y + mid * Math.sin(a.a);
-  const c2x = centre.x + mid * Math.cos(b.a);
-  const c2y = centre.y + mid * Math.sin(b.a);
+/** Parent to child: leave along the ring, arrive along the spoke. A block cell hangs straight down. */
+function treePath(a: TreeNode, b: TreeNode): string {
+  const centre = b.hub;
+  if (!centre || b.r === undefined) return gridPath(a, b);
+  const ra = Math.hypot(cx(a) - centre.x, cy(a) - centre.y);
+  const aa = Math.atan2(cy(a) - centre.y, cx(a) - centre.x);
+  const mid = (ra + b.r) / 2;
+  const c1x = centre.x + mid * Math.cos(ra < 1 ? b.a! : aa);
+  const c1y = centre.y + mid * Math.sin(ra < 1 ? b.a! : aa);
+  const c2x = centre.x + mid * Math.cos(b.a!);
+  const c2y = centre.y + mid * Math.sin(b.a!);
   return `M ${cx(a)} ${cy(a)} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${cx(b)} ${cy(b)}`;
 }
 
@@ -392,8 +540,11 @@ export function buildTree(host: HTMLElement, layout: TreeLayout): TreeView {
 
   const nodes = new Map<string, HTMLElement>();
   for (const n of layout.nodes) {
-    const b = document.createElement("button");
+    // a div, not a button: the buy control inside it is a button of its own
+    const b = document.createElement("div");
     b.className = "tnode";
+    b.setAttribute("role", "button");
+    b.tabIndex = 0;
     b.dataset.node = n.spec.id;
     b.style.left = `${n.x}px`;
     b.style.top = `${n.y}px`;
@@ -401,7 +552,8 @@ export function buildTree(host: HTMLElement, layout: TreeLayout): TreeView {
     b.style.height = `${n.h}px`;
     b.innerHTML =
       `<span class="tn">${esc(n.spec.name)}</span>` +
-      `<span class="tl"></span>` +
+      `<span class="tf"><span class="tl"></span>` +
+      `<button class="tbuy" data-buy="${n.spec.id}" hidden></button></span>` +
       `<i class="tb"><b></b></i>` +
       (n.foldable ? `<span class="tx" data-toggle="${n.spec.id}"></span>` : "");
     inner.appendChild(b);
@@ -443,6 +595,15 @@ export function paintTree(view: TreeView, opts: PaintOpts): void {
     const filled = Math.max(0, Math.min(1, st.fill)) * 100;
     (elm.querySelector(".tb>b") as HTMLElement).style.width = `${filled.toFixed(0)}%`;
 
+    const buy = elm.querySelector(".tbuy") as HTMLButtonElement;
+    const offer = opts.buyLabel?.(n.spec) ?? null;
+    buy.hidden = !offer;
+    if (offer) {
+      buy.textContent = offer.text;
+      buy.disabled = !offer.on;
+    }
+    if (opts.title) elm.title = opts.title(n.spec);
+
     const chevron = elm.querySelector(".tx") as HTMLElement | null;
     if (chevron) {
       chevron.textContent = n.open ? "⌄" : "›";
@@ -476,11 +637,14 @@ export function setZoom(view: TreeView, z: number): number {
   return view.zoom;
 }
 
-/** Zoom that makes the whole canvas fit the visible width. */
-export function fitZoom(view: TreeView, host: HTMLElement, floor = FIT_MIN): number {
-  const room = host.clientWidth - 4;
-  if (room <= 0) return view.zoom;
-  return setZoom(view, Math.max(floor, room / view.layout.width));
+/** Zoom that makes the whole canvas fit the visible width — and the height too, if asked. */
+export function fitZoom(view: TreeView, host: HTMLElement, floor = FIT_MIN, both = false): number {
+  const roomW = host.clientWidth - 4;
+  const roomH = host.clientHeight - 4;
+  if (roomW <= 0) return view.zoom;
+  let z = roomW / view.layout.width;
+  if (both && roomH > 0) z = Math.min(z, roomH / view.layout.height);
+  return setZoom(view, Math.max(floor, z));
 }
 
 /** Put the middle of the canvas in the middle of the viewport — where the web's centre is. */

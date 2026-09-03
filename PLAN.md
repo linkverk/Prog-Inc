@@ -175,10 +175,27 @@ The page draws that graph two ways, switched by a control beside the zoom button
 
 #### Web — the radial map
 
-The default. One canvas, you at the centre, the game fanning out around you in rings.
-A node with children carries a chevron: the chevron folds its sector away, the body of the
-node selects it. Only the centre and the four first-ring hubs are open on a fresh game —
-about fifteen nodes — and the map grows as you open what you care about.
+The default. One canvas, you at the centre, the game around you. A node with children
+carries a chevron: the chevron folds its sector away, the body of the node selects it. Only
+the centre and Foundation are open on a fresh game — sixteen nodes — and the map grows as
+you open what you care about.
+
+**Every purchasable node sells itself.** A node shows its name, its level and a button with
+the price: `+1 8 ✓` for a skill, `×1 $662` for a tool, `Open 5 KP` for a gateway, `Buy $1.4K`
+for an upgrade. The `×1 / ×10 / Max` switch beside the zoom buttons sets how many the button
+buys (it is the same `bulk` the Tools page uses); `B` buys the selected node from the
+keyboard, `Shift+B` buys as many as the balance allows. A locked node has no button — its
+tooltip says what it needs — and a maxed one reads "owned" or "open". The detail panel keeps
+the description, the requirement and the edges, and sits beside the map, not under it.
+
+**The map is a necklace, not a set of rings.** Hubs, the branch gateways and the taps are
+*clusters*: an open cluster lays its subtree out on its own — as rings around its root, or
+as a grid under it for a hub whose children are all leaves (the money ladders, the taps, the
+specialisations, each branch's eight upgrades) — and rides as one circle on a single
+necklace around you, in tree order, joined to its parent by an arc. A closed cluster is a
+box on the same necklace. Inside a cluster, a ring is only as long as the boxes on it need
+and a subtree gets the angle its own boxes take up, so neighbours sit shoulder to shoulder.
+Fit never drops below 60%: names stay names, and a map that does not fit at 60% scrolls.
 
 ```
 YOU (main.py, your click)
@@ -189,7 +206,8 @@ YOU (main.py, your click)
 ├─ Career ........... 16 ranks as a spine, 7 specialisations               65
 └─ Foundation (g0) .. g1 · g2 · g3
     └─ the 8 branch gateways — a branch hub *is* its gateway
-        └─ 3 sub-gateways, tiers 1–5, the branch's 8 money upgrades        45 each
+        ├─ 3 sub-gateways, tiers 1–5                                       36 each
+        └─ <branch> upgrades (fold) → the branch's 8 money upgrades       9 each
 ```
 
 Ranks, specialisations and the two taps (lines typed by hand, bugs squashed) are a node
@@ -202,23 +220,23 @@ centre — bundled, so forty cross-branch links read as a few strands rather tha
 
 | family | what it joins | count | on by default |
 |---|---|---|---|
-| `tree` | parent to child in the hierarchy above | 793 | always |
+| `tree` | parent to child in the hierarchy above | 801 | always |
 | `requires` | `Skill.req` that is not already a parent link | 80 | yes |
 | `career` | rank → the upgrades it gates (`reqRank`) | 202 | no |
 | `affects` | skill → the tools it multiplies (`gens[]`), `cheaper` skills → Setup | 67 | no |
 | `currency` | `crossCurrency.target` → the other branch's hub | 40 | yes |
 | `fight` | Craft ↔ Security, the two branches fighting over one tap | 2 | yes |
 
-794 nodes in total: the 762 you can buy, plus the centre, six folds, sixteen ranks, seven
-specialisations and the two taps. `reqTrack` and `reqClicks`/`reqBugsKilled` need no family
+802 nodes in total: the 762 you can buy, plus the centre, fourteen folds (six hubs and one
+upgrade shelf per branch), sixteen ranks, seven specialisations and the two taps. `reqTrack` and `reqClicks`/`reqBugsKilled` need no family
 of their own — those upgrades already hang under their specialisation or their tap.
 
 Whatever the switches say, selecting a node lights every edge it owns.
 
 Beside the zoom buttons sits a density switch, **Tight** (the default) and **Roomy**: it
 halves every gap — between rows, between rings, between neighbours on a ring — without
-touching the two terms that keep boxes apart, so a denser map is never an overlapping one.
-Both layouts read the same metrics, so the flat view tightens with it.
+touching the clearance terms, so a denser map is never an overlapping one. Both layouts
+read the same metrics, so the flat view tightens with it.
 
 Two links deliberately go undrawn: the `fx.gens` of the 96 generator upgrades and the
 `fx.cur` of the 64 branch upgrades. In both the effect edge would land on the node that is

@@ -1,9 +1,11 @@
 import type { BranchId } from "../core/types";
 import type { Found, LayerId, NodeSpec } from "./treemodel";
 import {
-  LAYERS, UPGRADE_TOTAL, affordableLevels, allNodes, anyAffordable, buyNode, layerLayout,
-  levelOf, lockReason, priceLabel, resetLayouts, specById, statusOf, unlocked, upgradesOwned,
+  LAYERS, UPGRADE_TOTAL, affordableLevels, allNodes, anyAffordable, bulkPrice, buyNode, costOf,
+  layerLayout, levelOf, lockReason, priceLabel, resetLayouts, specById, statusOf, symbolOf,
+  unlocked, upgradesOwned,
 } from "./treemodel";
+import { floatText } from "./status";
 import {
   FAMILIES, allWebNodes, branchHubId, connectionsOf, density, edgeCount, familiesOn, hubOf,
   isOpen, mode, nodeCount, openPath, setDensityMode, setMode, shapeKey, toggleFamily,
@@ -15,8 +17,8 @@ import { GENERATORS } from "../data/generators";
 import { fmt, money } from "../core/format";
 import { $, delegate, esc } from "./dom";
 import {
-  FIT_MIN, ZOOM_MIN, buildTree, centreView, enablePan, fitZoom, layoutRadial, paintTree,
-  scrollNodeIntoView, setDensity, setZoom, type Density, type TreeView,
+  FIT_MIN, WEB_FIT_MIN, buildTree, centreView, enablePan, fitZoom, layoutRadial, paintTree,
+  scrollNodeIntoView, setDensity, setZoom, type Density, type TreeNodeSpec, type TreeView,
 } from "./tree";
 
 /** Highlight modes — the old shop filters, turned into a lens over the whole tree. */
@@ -58,12 +60,20 @@ export function initTree(changed: () => void): void {
   });
 
   delegate($("treecanvas"), "[data-node]", (t, ev) => {
-    // the chevron lives inside the node button; it folds instead of selecting
-    const fold = (ev.target as HTMLElement | null)?.closest("[data-toggle]") as HTMLElement | null;
+    const target = ev.target as HTMLElement | null;
+    // the chevron lives inside the node; it folds instead of selecting
+    const fold = target?.closest("[data-toggle]") as HTMLElement | null;
     if (fold) {
       toggleOpen(fold.dataset.toggle!);
       renderTree();
       if (view) scrollNodeIntoView(view, $("treecanvas"), fold.dataset.toggle!);
+      return;
+    }
+    // so does the buy button: it buys, and selects on the way
+    const buy = target?.closest("[data-buy]") as HTMLElement | null;
+    if (buy) {
+      picked = buy.dataset.buy!;
+      purchase(picked, S.bulk, ev, t);
       return;
     }
     const spec = specById(t.dataset.node!);
@@ -79,15 +89,32 @@ export function initTree(changed: () => void): void {
     renderTree();
   });
 
-  delegate($("treedetail"), "[data-buy]", (t) => {
-    const spec = specById(t.dataset.buy!);
-    if (!spec) return;
+  delegate($("treedetail"), "[data-buy]", (t, ev) => {
     const raw = t.dataset.n ?? "1";
-    const bought = buyNode(spec, raw === "max" ? "max" : Number(raw));
-    if (bought > 0) {
-      renderTree();
-      onChange();
-    }
+    purchase(t.dataset.buy!, raw === "max" ? "max" : Number(raw), ev, t);
+  });
+
+  // how many a node's own button buys; the save already remembers it for the Tools page
+  delegate($("tree-bulk"), "[data-bulk]", (t) => {
+    const raw = t.dataset.bulk!;
+    S.bulk = raw === "max" ? "max" : Number(raw);
+    renderTree();
+  });
+
+  // B buys the picked node from the keyboard; Shift+B buys as many as the balance allows
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "b" && e.key !== "B") return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if ($("page-skills").hidden) return;
+    const focus = document.activeElement as HTMLElement | null;
+    const onNode = focus?.closest("[data-node]") as HTMLElement | null;
+    // typing "b" into the search box is not a purchase
+    if (focus && focus.matches("input, select, textarea")) return;
+    if (focus && focus !== document.body && !$("page-skills").contains(focus)) return;
+    const id = onNode?.dataset.node ?? picked;
+    if (!id) return;
+    e.preventDefault();
+    purchase(id, e.shiftKey ? "max" : S.bulk, null, onNode ?? view?.nodes.get(id) ?? null);
   });
 
   delegate($("treedetail"), "[data-goto]", (t) => goTo(t.dataset.goto!));
@@ -144,7 +171,7 @@ function goTo(id: string): void {
   if (!spec) return;
   picked = id;
   if (mode() === "web") openPath(id);
-  else if (spec.jump) selected = spec.jump;
+  else selected = spec.jump ?? allNodes().find((f) => f.spec.id === id)?.layer ?? selected;
   renderTree();
   if (view?.nodes.has(id)) scrollNodeIntoView(view, $("treecanvas"), id);
 }
@@ -156,7 +183,7 @@ function nudgeZoom(by: number): void {
 
 function refit(): void {
   if (!view) return;
-  fitZoom(view, $("treecanvas"), mode() === "web" ? ZOOM_MIN : FIT_MIN);
+  fitZoom(view, $("treecanvas"), mode() === "web" ? WEB_FIT_MIN : FIT_MIN, mode() === "web");
   // the web grows outwards from the middle, so fitting it means looking at the middle
   if (mode() === "web") centreView(view, $("treecanvas"));
   paintZoom();
@@ -165,7 +192,7 @@ function refit(): void {
 function paintZoom(): void {
   $("zoom-val").textContent = view ? `${Math.round(view.zoom * 100)}%` : "";
   // far enough out that names are noise: keep the shape, drop the words
-  $("treecanvas").classList.toggle("z-far", !!view && view.zoom < 0.55);
+  $("treecanvas").classList.toggle("z-far", !!view && view.zoom < 0.4);
 }
 
 export function renderTree(): void {
@@ -190,12 +217,17 @@ export function renderTree(): void {
   }
   renderFamilies();
   const hl = renderSearch();
+  document.querySelectorAll<HTMLElement>("#tree-bulk [data-bulk]").forEach((b) => {
+    b.setAttribute("aria-pressed", String(b.dataset.bulk === String(S.bulk)));
+  });
   if (view) {
     paintTree(view, {
       selected: picked,
       statusOf,
       highlight: hl,
       families: web ? familiesOn() : null,
+      buyLabel,
+      title: nodeTitle,
     });
   }
   renderDetail();
@@ -492,6 +524,52 @@ function renderDetail(): void {
     (reason ? `<div class="tdreq">${esc(reason)}</div>` : "") +
     renderConnections(spec.id) +
     `<div class="tdf">${actionsFor(spec)}</div>`;
+}
+
+/** Buy from anywhere — a node's button, the detail panel, the keyboard — and show it. */
+function purchase(id: string, n: number | "max", ev: MouseEvent | null, at: HTMLElement | null): void {
+  const spec = specById(id);
+  if (!spec) return;
+  const bought = buyNode(spec, n);
+  if (bought <= 0) return;
+  if (at) floatText(at, ev, spec.kind === "upgrade" || spec.gateway ? "bought" : `+${fmt(bought)}`);
+  renderTree();
+  onChange();
+}
+
+/** What the button on a node says. Nothing on anchors, on maxed nodes, or behind a lock. */
+function buyLabel(node: TreeNodeSpec): { text: string; on: boolean } | null {
+  const spec = specById(node.id);
+  if (!spec || spec.kind === "anchor") return null;
+  const st = statusOf(spec);
+  if (st.maxed || !st.unlocked) return null;
+  if (spec.kind === "upgrade") return { text: `Buy ${priceLabel(spec)}`, on: st.ready };
+  if (spec.gateway) return { text: `Open ${priceLabel(spec)}`, on: st.ready };
+  const mark = spec.kind === "gen" ? "×" : "+";
+  const cap = spec.maxLevel > 0 ? spec.maxLevel - levelOf(spec) : 1000;
+  if (S.bulk === "max") {
+    const k = affordableLevels(spec, cap);
+    return k > 0 ? { text: `Max ${mark}${fmt(k)}`, on: true } : { text: `${mark}1 ${priceLabel(spec)}`, on: false };
+  }
+  const want = Math.max(1, Math.min(S.bulk, cap));
+  const price = want === 1 ? costOf(spec) : bulkPrice(spec, want);
+  const label = spec.kind === "skill" ? `${fmt(price)} ${symbolOf(spec)}` : money(price);
+  return { text: `${mark}${want} ${label}`, on: affordableLevels(spec, want) >= want };
+}
+
+/** The native tooltip: what it is, what it costs, why it is shut. */
+function nodeTitle(node: TreeNodeSpec): string {
+  const spec = specById(node.id);
+  if (!spec) return node.name;
+  const lines = [spec.name, spec.desc];
+  if (spec.kind !== "anchor") {
+    const st = statusOf(spec);
+    if (st.maxed) lines.push(spec.gateway ? "Open." : "Owned.");
+    else lines.push(`Price: ${priceLabel(spec)}`);
+    const why = lockReason(spec);
+    if (why) lines.push(why);
+  }
+  return lines.join("\n");
 }
 
 function actionsFor(spec: NodeSpec): string {

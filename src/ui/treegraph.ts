@@ -49,6 +49,11 @@ const kids = new Map<string, string[]>();
 const parentOf = new Map<string, string>();
 const specOf = new Map<string, NodeSpec>();
 const edges: TreeEdge[] = [];
+/**
+ * Nodes that lay their subtree out on their own — see `WebNode.cluster`. A `block` is a
+ * hub whose children are all leaves and would only ever read as a halo: a grid instead.
+ */
+const clusters = new Map<string, "fan" | "block">();
 
 function add(spec: NodeSpec, parent?: string): NodeSpec {
   register(spec);
@@ -76,6 +81,7 @@ const countOwned = (ids: string[], has: (id: string) => boolean): [number, numbe
 function hub(key: string, name: string, desc: string, count: () => [number, number]): NodeSpec {
   const spec = anchorSpec(`hub:${key}`, name, desc, "Hub");
   spec.flavour = "hub";
+  clusters.set(spec.id, "fan");
   spec.live = () => {
     const [have, total] = count();
     return { label: `${have}/${total}`, reached: have > 0, fill: total ? have / total : 0 };
@@ -131,6 +137,7 @@ function build(): void {
       hub(family, name, desc, () => countOwned(list.map((u) => u.id), (id) => !!S.upg[id])),
       parent,
     );
+    clusters.set(head.id, "block");
     for (const u of list) add(upgradeSpec(u, [head.id]), head.id);
   };
   ladder("output", "Output", "Raw lines per second, bought outright.", shop.id);
@@ -139,6 +146,7 @@ function build(): void {
 
   const tap = (key: string, name: string, desc: string, family: string): void => {
     const node = add(anchorSpec(key, name, desc, "Tap"), shop.id);
+    clusters.set(node.id, "block");
     const list = UPGRADES.filter((u) => u.family === family).sort((a, b) => a.cost - b.cost);
     for (const u of list) add(upgradeSpec(u, [node.id]), node.id);
   };
@@ -158,20 +166,33 @@ function build(): void {
   });
   for (const t of TRACKS) {
     const node = add(anchorSpec(`track:${t.id}`, t.name, t.sub, "Specialisation"), career.id);
+    clusters.set(node.id, "block");
     const mine = UPGRADES.filter((u) => u.reqTrack === t.id).sort((a, b) => a.cost - b.cost);
     for (const u of mine) add(upgradeSpec(u, [node.id]), node.id);
   }
 
   /* Foundation and the branches: a skill's parent is its first prerequisite */
   const g0 = add(skillSpec(SKILL_BY_ID.g0), YOU);
+  clusters.set(g0.id, "fan");
   for (const sk of SKILLS) {
     if (sk.id === "g0") continue;
     // the later global gateways hang off g0 and point at the branches they need with arcs
     add(skillSpec(sk), sk.branch === "global" ? g0.id : skId(sk.req[0] ?? "g0"));
   }
   for (const b of BRANCHES) {
+    const gate = skId(`b_${b.id}`);
+    // a branch is its own cluster: eight tier chains fanning out of the gateway
+    clusters.set(gate, "fan");
+    // its money upgrades get a fold of their own, so they do not crowd the gateway's ring
     const mine = UPGRADES.filter((u) => u.reqBranch === b.id).sort((x, y) => x.cost - y.cost);
-    for (const u of mine) add(upgradeSpec(u, [skId(`b_${b.id}`)]), skId(`b_${b.id}`));
+    const shelf = add(
+      hub(`branch:${b.id}`, `${b.name} upgrades`, `Bought with money, flavoured ${b.name}.`, () =>
+        countOwned(mine.map((u) => u.id), (id) => !!S.upg[id]),
+      ),
+      gate,
+    );
+    clusters.set(shelf.id, "block");
+    for (const u of mine) add(upgradeSpec(u, [shelf.id]), shelf.id);
   }
 
   buildEdges(setup.id);
@@ -280,10 +301,13 @@ const stub = (id: string): WebNode => ({ spec: specOf.get(id)!, open: false, chi
 export function webRoot(): WebNode {
   const node = (id: string): WebNode => {
     const children = kids.get(id) ?? [];
+    const shape = clusters.get(id);
     return {
       spec: specOf.get(id)!,
       open: open.has(id),
       children: open.has(id) ? children.map(node) : children.map(stub),
+      cluster: !!shape,
+      shape,
     };
   };
   return node(YOU);

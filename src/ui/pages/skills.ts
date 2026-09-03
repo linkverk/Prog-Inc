@@ -17,7 +17,10 @@ const HTML = `
 </div>
 <div class="tresults" id="tree-results"></div>
 <div class="skillwrap">
-  <div class="layerlist" id="layerlist"></div>
+  <div class="treeside">
+    <div class="treedetail" id="treedetail"></div>
+    <div class="layerlist" id="layerlist"></div>
+  </div>
   <div class="treecol">
     <div id="layerhead"></div>
     <div class="zoombar">
@@ -33,10 +36,14 @@ const HTML = `
         <button class="minibtn" data-density="tight">Tight</button>
         <button class="minibtn" data-density="normal">Roomy</button>
       </span>
+      <span class="modeswitch" id="tree-bulk" title="How many a node's button buys (B on the keyboard, Shift+B for max)">
+        <button class="minibtn" data-bulk="1">&times;1</button>
+        <button class="minibtn" data-bulk="10">&times;10</button>
+        <button class="minibtn" data-bulk="max">Max</button>
+      </span>
       <span class="legend" id="tree-fams"></span>
     </div>
     <div class="treecanvas" id="treecanvas"></div>
-    <div class="treedetail" id="treedetail"></div>
   </div>
 </div>
 `;
