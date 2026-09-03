@@ -132,6 +132,17 @@ Craft owns the bug-and-quality family, Business owns income and discounts, Syste
 machines and offline. The rotation shifts by one per tier, and the magnitude of a level
 varies with position (×0.85 to ×1.3), so no two skills in one branch and tier read alike.
 
+### How the tree is shown
+
+The branches tab is a canvas, not a list. A tier is a row, the gateway trunk runs down the
+middle, and every `req` is drawn as an edge — an edge lights up once its parent is owned
+deep enough, which is how the tier-5 threshold becomes visible instead of surprising.
+Foundation is the map of the whole game: `g0`, the eight branch gateways it opens, then
+`g1`/`g2`/`g3`; picking a branch node walks into that branch. Nodes are compact (name,
+level, progress) and a panel underneath carries the description, the price and the buy
+buttons. Structure is built once per branch and only repainted afterwards, so zoom, scroll
+and selection survive the tab's periodic refresh.
+
 ### Distribution per branch (33 upgradable + 3 sub-gateways)
 
 | tier | count | unlocked by | level cap | cost of level 1 |
@@ -204,6 +215,7 @@ zero-to-ten-x/
    │  └─ upgrades.generated.ts   ← 450 upgrades
    └─ ui/
       ├─ dom.ts  shell.ts  modal.ts  status.ts
+      ├─ tree.ts              skill-tree canvas: layout, edges, nodes, zoom
       ├─ setup.ts  shop.ts  branches.ts
       └─ panels.ts            career, awards, track, prestige, stats, offline report
 ```

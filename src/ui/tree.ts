@@ -14,7 +14,7 @@ import { esc } from "./dom";
 const SVG_NS = "http://www.w3.org/2000/svg";
 
 const NODE_W = 124;
-const NODE_H = 52;
+const NODE_H = 60;
 const GAP_X = 12;
 const GAP_Y = 40;
 const PAD = 24;

@@ -68,6 +68,11 @@ gone, the other wants them to exist.
 branch ones, and three sub-paths inside each branch. They cost once and can never be
 levelled. Everything else has 3 to 12 levels, 2,316 purchasable levels in total.
 
+**The tree is a tree.** Branches are drawn as a graph: tier per row, the gateway trunk down
+the middle, an edge for every prerequisite, lit once that prerequisite is deep enough. The
+Foundation view is the map of all eight branches; click one to walk into it. Zoom with the
+buttons, scroll the canvas, and buy from the panel under it.
+
 **450 shop upgrades**, bought with money and lost on a job hop. Filter by family, search by
 name, or switch the view to "Affordable now" when the list gets long.
 

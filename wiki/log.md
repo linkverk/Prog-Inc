@@ -22,3 +22,11 @@ duplicate skill descriptions (170 -> 238 unique). Two colliding gateway names re
 Research. `npm run gen` gained integrity checks for duplicate names, duplicate
 branch+tier descriptions, gateway shape and per-branch composition. Counts unchanged:
 300 / 36 / 264 / 2 316 / 450.
+
+## [2026-09-03] ingest | the branches tab became a tree
+Skills were a flat grid of cards; the `req` graph was invisible. New `src/ui/tree.ts` lays
+out a canvas (row per tier, gateway trunk centred, SVG edges) and `src/ui/branches.ts` now
+owns selection plus a detail panel with the buy buttons. Foundation is the map: g0, the eight
+branch gateways, g1/g2/g3. Build and paint are separate so the tab's 2.5s refresh cannot eat
+the zoom, scroll or selected node. Layout verified: 37 nodes / 45 edges per branch, 12 / 16
+on the map, no overlaps. Content counts untouched.

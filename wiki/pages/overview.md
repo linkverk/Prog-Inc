@@ -26,6 +26,11 @@ A job hop (prestige) resets money and shop upgrades, pays reputation, and keeps 
 See [[currency-model]] for why knowledge does only one job, and [[gateway-rule]] for why
 gateways can never be upgraded.
 
+The branches tab draws this as an actual tree (`src/ui/tree.ts`): a row per tier, the
+gateway trunk down the middle, one edge per prerequisite, and Foundation as the map of all
+eight branches. The edges are what make [[gateway-rule]] legible in play — a locked tier
+reads as a missing parent rather than a mystery.
+
 ## Verified content counts
 
 `npm run gen` prints these; they are not authored numbers.

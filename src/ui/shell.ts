@@ -116,7 +116,17 @@ export const SHELL = `
         <p class="hint" id="branch-hint"></p>
         <div class="skillwrap">
           <div class="branchlist" id="branchlist"></div>
-          <div id="branchbody"></div>
+          <div class="treecol">
+            <div id="branchhead"></div>
+            <div class="zoombar">
+              <button class="minibtn" id="zoom-out" title="Zoom out" aria-label="Zoom out">&minus;</button>
+              <button class="minibtn" id="zoom-in" title="Zoom in" aria-label="Zoom in">+</button>
+              <button class="minibtn" id="zoom-fit">Fit</button>
+              <span class="zoomval num" id="zoom-val"></span>
+            </div>
+            <div class="treecanvas" id="treecanvas"></div>
+            <div class="treedetail" id="treedetail"></div>
+          </div>
         </div>
       </div>
 
