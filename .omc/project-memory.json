@@ -9,7 +9,7 @@
     "runtime": null
   },
   "build": {
-    "buildCommand": "cd \"D:/GitHub/Prog Inc\" && npm run build 2>&1 | tail -3 && echo \"=== git ===\" && git status --short | head -15",
+    "buildCommand": "cd \"/d/GitHub/Prog Inc\" && grep -rl \"treegraph\" src && node - <<'EOF'\nconst fs = require(\"fs\");\nconst p = \"src/ui/treegraph.ts\";\nlet s = fs.readFileSync(p, \"utf8\");\nconst start = s.indexOf(\"const VIEW_KEY\");\nconst end = s.indexOf(\"export const mode = \");\nif (start < 0 || end < 0) throw new Error(\"anchors not found\");\nconst replacement = `/* a fresh store starts with the centre and Foundation open: you, four hubs, g1–g3, the eight gateways */\nif (viewIsFresh) {\n  view.open = [YOU, \"sk:g0\"];\n  view.families = FAMILIES.filter((f) => f.on).map((f) => f.id);\n}\n\nconst open = new Set(view.open);\nconst families = new Set(view.families);\n\nfunction persist(): void {\n  view.open = [...open];\n  view.families = [...families];\n  persistView();\n}\n\n`;\ns = s.slice(0, start) + replacement + s.slice(end);\ns = s.replace(`import { setDensity } from \"./tree\";`, `import { setDensity } from \"./tree\";\\nimport { persistView, view, viewIsFresh } from \"./viewstore\";`);\nfs.writeFileSync(p, s);\nconsole.log(\"patched\");\nEOF\nnpx tsc --noEmit && echo TYPECHECK_OK",
     "testCommand": null,
     "lintCommand": null,
     "devCommand": null,
@@ -34,21 +34,33 @@
   "directoryMap": {},
   "hotPaths": [
     {
-      "path": "src\\ui\\tree.ts",
-      "accessCount": 21,
-      "lastAccessed": 1788465433349,
+      "path": "src\\ui\\treemodel.ts",
+      "accessCount": 29,
+      "lastAccessed": 1788468766760,
       "type": "file"
     },
     {
-      "path": "src\\ui\\treemodel.ts",
-      "accessCount": 21,
-      "lastAccessed": 1788465435620,
+      "path": "src\\ui\\tree.ts",
+      "accessCount": 23,
+      "lastAccessed": 1788468729695,
       "type": "file"
     },
     {
       "path": "src\\ui\\treetab.ts",
+      "accessCount": 17,
+      "lastAccessed": 1788468743501,
+      "type": "file"
+    },
+    {
+      "path": "src\\main.ts",
       "accessCount": 14,
-      "lastAccessed": 1788465440487,
+      "lastAccessed": 1788468737195,
+      "type": "file"
+    },
+    {
+      "path": "src\\ui\\treegraph.ts",
+      "accessCount": 13,
+      "lastAccessed": 1788468744318,
       "type": "file"
     },
     {
@@ -58,27 +70,51 @@
       "type": "file"
     },
     {
-      "path": "src\\main.ts",
-      "accessCount": 10,
-      "lastAccessed": 1788461995961,
-      "type": "file"
-    },
-    {
       "path": "PLAN.md",
-      "accessCount": 9,
-      "lastAccessed": 1788465947379,
-      "type": "file"
-    },
-    {
-      "path": "src\\ui\\treegraph.ts",
-      "accessCount": 8,
-      "lastAccessed": 1788465160780,
+      "accessCount": 11,
+      "lastAccessed": 1788467334551,
       "type": "file"
     },
     {
       "path": "src\\ui\\shell.ts",
+      "accessCount": 10,
+      "lastAccessed": 1788468738738,
+      "type": "file"
+    },
+    {
+      "path": "",
+      "accessCount": 8,
+      "lastAccessed": 1788467367874,
+      "type": "directory"
+    },
+    {
+      "path": "wiki\\pages\\overview.md",
       "accessCount": 6,
-      "lastAccessed": 1788465163060,
+      "lastAccessed": 1788467380079,
+      "type": "file"
+    },
+    {
+      "path": "src\\data\\branches.ts",
+      "accessCount": 6,
+      "lastAccessed": 1788468730630,
+      "type": "file"
+    },
+    {
+      "path": "src\\core\\actions.ts",
+      "accessCount": 6,
+      "lastAccessed": 1788468747511,
+      "type": "file"
+    },
+    {
+      "path": "src\\core\\types.ts",
+      "accessCount": 6,
+      "lastAccessed": 1788468747682,
+      "type": "file"
+    },
+    {
+      "path": "src\\core\\engine.ts",
+      "accessCount": 6,
+      "lastAccessed": 1788468755123,
       "type": "file"
     },
     {
@@ -88,9 +124,21 @@
       "type": "file"
     },
     {
-      "path": "wiki\\pages\\overview.md",
+      "path": "README.md",
       "accessCount": 5,
-      "lastAccessed": 1788465945178,
+      "lastAccessed": 1788467335173,
+      "type": "file"
+    },
+    {
+      "path": "TASKS.md",
+      "accessCount": 5,
+      "lastAccessed": 1788467336671,
+      "type": "file"
+    },
+    {
+      "path": "src\\core\\state.ts",
+      "accessCount": 5,
+      "lastAccessed": 1788468757242,
       "type": "file"
     },
     {
@@ -106,18 +154,6 @@
       "type": "file"
     },
     {
-      "path": "",
-      "accessCount": 4,
-      "lastAccessed": 1788463159007,
-      "type": "directory"
-    },
-    {
-      "path": "src\\data\\branches.ts",
-      "accessCount": 4,
-      "lastAccessed": 1788463218159,
-      "type": "file"
-    },
-    {
       "path": "C:\\Users\\GEBRUI~1\\AppData\\Local\\Temp\\claude\\D--GitHub-Prog-Inc\\8ab29a83-d550-4cc1-af46-4b23b8ce3908\\scratchpad",
       "accessCount": 4,
       "lastAccessed": 1788465252280,
@@ -130,15 +166,45 @@
       "type": "file"
     },
     {
-      "path": "src\\core\\engine.ts",
-      "accessCount": 3,
-      "lastAccessed": 1788461735285,
+      "path": "src\\ui\\status.ts",
+      "accessCount": 4,
+      "lastAccessed": 1788468739259,
       "type": "file"
     },
     {
-      "path": "src\\core\\actions.ts",
-      "accessCount": 3,
-      "lastAccessed": 1788461736993,
+      "path": "src\\ui\\panels.ts",
+      "accessCount": 4,
+      "lastAccessed": 1788468739763,
+      "type": "file"
+    },
+    {
+      "path": "src\\ui\\dom.ts",
+      "accessCount": 4,
+      "lastAccessed": 1788468745211,
+      "type": "file"
+    },
+    {
+      "path": "src",
+      "accessCount": 4,
+      "lastAccessed": 1788468752812,
+      "type": "directory"
+    },
+    {
+      "path": "src\\core\\save.ts",
+      "accessCount": 4,
+      "lastAccessed": 1788468758605,
+      "type": "file"
+    },
+    {
+      "path": "src\\styles.css",
+      "accessCount": 4,
+      "lastAccessed": 1788468768342,
+      "type": "file"
+    },
+    {
+      "path": "src\\data\\generators.ts",
+      "accessCount": 4,
+      "lastAccessed": 1788468769315,
       "type": "file"
     },
     {
@@ -148,39 +214,39 @@
       "type": "file"
     },
     {
-      "path": "src",
-      "accessCount": 3,
-      "lastAccessed": 1788463206928,
-      "type": "directory"
-    },
-    {
-      "path": "src\\core\\types.ts",
-      "accessCount": 3,
-      "lastAccessed": 1788463215962,
-      "type": "file"
-    },
-    {
-      "path": "README.md",
-      "accessCount": 3,
-      "lastAccessed": 1788465497947,
-      "type": "file"
-    },
-    {
-      "path": "TASKS.md",
-      "accessCount": 3,
-      "lastAccessed": 1788465502108,
-      "type": "file"
-    },
-    {
       "path": "wiki\\log.md",
       "accessCount": 3,
       "lastAccessed": 1788465509141,
       "type": "file"
     },
     {
+      "path": "package.json",
+      "accessCount": 3,
+      "lastAccessed": 1788467379471,
+      "type": "file"
+    },
+    {
       "path": ".claude\\hooks\\graphify-gate.mjs",
-      "accessCount": 2,
-      "lastAccessed": 1788454557191,
+      "accessCount": 3,
+      "lastAccessed": 1788468732551,
+      "type": "file"
+    },
+    {
+      "path": "src\\ui\\modal.ts",
+      "accessCount": 3,
+      "lastAccessed": 1788468746365,
+      "type": "file"
+    },
+    {
+      "path": "src\\core\\events.ts",
+      "accessCount": 3,
+      "lastAccessed": 1788468757748,
+      "type": "file"
+    },
+    {
+      "path": "index.html",
+      "accessCount": 3,
+      "lastAccessed": 1788468771198,
       "type": "file"
     },
     {
@@ -202,9 +268,15 @@
       "type": "file"
     },
     {
-      "path": "package.json",
-      "accessCount": 1,
-      "lastAccessed": 1788455505180,
+      "path": "src\\core\\effects.ts",
+      "accessCount": 2,
+      "lastAccessed": 1788467286204,
+      "type": "file"
+    },
+    {
+      "path": "src\\core\\bus.ts",
+      "accessCount": 2,
+      "lastAccessed": 1788468756291,
       "type": "file"
     },
     {
@@ -217,36 +289,6 @@
       "path": "scripts\\gen-content.mjs",
       "accessCount": 1,
       "lastAccessed": 1788458173649,
-      "type": "file"
-    },
-    {
-      "path": "src\\core\\effects.ts",
-      "accessCount": 1,
-      "lastAccessed": 1788458180948,
-      "type": "file"
-    },
-    {
-      "path": "src\\core\\state.ts",
-      "accessCount": 1,
-      "lastAccessed": 1788458213780,
-      "type": "file"
-    },
-    {
-      "path": "src\\ui\\dom.ts",
-      "accessCount": 1,
-      "lastAccessed": 1788458952726,
-      "type": "file"
-    },
-    {
-      "path": "src\\data\\generators.ts",
-      "accessCount": 1,
-      "lastAccessed": 1788460957352,
-      "type": "file"
-    },
-    {
-      "path": "src\\styles.css",
-      "accessCount": 1,
-      "lastAccessed": 1788461018691,
       "type": "file"
     },
     {
@@ -283,6 +325,12 @@
       "path": "C:\\Users\\GEBRUI~1\\AppData\\Local\\Temp\\claude\\D--GitHub-Prog-Inc\\8ab29a83-d550-4cc1-af46-4b23b8ce3908\\scratchpad\\web-tight.png",
       "accessCount": 1,
       "lastAccessed": 1788465481155,
+      "type": "file"
+    },
+    {
+      "path": "src\\core\\format.ts",
+      "accessCount": 1,
+      "lastAccessed": 1788467287894,
       "type": "file"
     }
   ],

@@ -1,4 +1,4 @@
-/** The static markup skeleton. Everything dynamic is filled in by the render modules. */
+/** The static skeleton: HUD, sidebar, the page host, the quick dock, overlays. Pages mount into #pages. */
 export const SHELL = `
 <div class="statusbar">
   <div class="statusbar-in">
@@ -16,129 +16,32 @@ export const SHELL = `
   </div>
 </div>
 
-<div class="wrap">
-  <div class="rankstrip">
-    <div>
-      <div class="rank-idx" id="rank-idx">Rank 01 / 16</div>
-      <div class="rank-title" id="rank-title">Curious Beginner</div>
-      <div style="margin-top:5px" id="rank-track"></div>
+<div class="body">
+  <nav class="sidenav" id="nav" aria-label="Pages">
+    <div class="navlist" id="navlist"></div>
+    <button class="navbtn navmore" id="navmore"><span class="ng">&#8943;</span><span class="nl">More</span></button>
+    <div class="dock" id="dock" hidden>
+      <button class="dockbtn" id="dock-code">Write code <span class="per num" id="dock-per">+1</span></button>
+      <button class="minibtn" id="dock-debug">Squash</button>
     </div>
-    <div class="rank-prog">
-      <div class="bar"><i id="rank-bar" style="width:0%"></i></div>
-      <div class="rank-next"><span id="rank-next">Next: Hobbyist</span><span id="rank-need" class="num">0 / 400</span></div>
-    </div>
-  </div>
+  </nav>
 
-  <div class="cols">
-    <div style="display:flex;flex-direction:column;gap:14px">
-      <div class="panel">
-        <div class="panel-h"><h2>main.py &mdash; you</h2><span class="pill" id="hands-pill">solo</span></div>
-        <div class="editor" id="editor"><div class="fade"></div></div>
-        <div class="clickzone" id="clickzone">
-          <button class="bigbtn" id="btn-code">Write code <span class="per" id="click-per">+1 LOC</span></button>
-        </div>
+  <main class="pages" id="pages">
+    <div class="rankstrip">
+      <div>
+        <div class="rank-idx" id="rank-idx">Rank 01 / 16</div>
+        <div class="rank-title" id="rank-title">Curious Beginner</div>
+        <div style="margin-top:5px" id="rank-track"></div>
       </div>
-
-      <div class="panel" id="sigpanel" hidden>
-        <div class="panel-h"><h2 id="sig-title">Specialisation</h2><span class="pill acc" id="sig-pill"></span></div>
-        <div class="panel-b sig" id="sig-body"></div>
-      </div>
-
-      <div class="panel">
-        <div class="panel-h"><h2>Codebase health</h2><span class="pill" id="bug-pill">clean</span></div>
-        <div class="panel-b">
-          <div class="meterlabel"><span>Open bugs</span><b class="num" id="bug-count">0</b></div>
-          <div class="bar"><i class="bug" id="bug-bar" style="width:0%"></i></div>
-          <p class="hint" style="margin:9px 0 0;font-size:11.5px" id="bug-note">Bugs pile up as you ship. They throttle your output.</p>
-        </div>
-        <div class="subrow">
-          <div>
-            <div style="font-weight:600;font-size:13px">Debug session</div>
-            <div style="font-size:11.5px;color:var(--ink3)" id="debug-note">Closes bugs by hand</div>
-          </div>
-          <button class="minibtn" id="btn-debug">Squash</button>
-        </div>
-      </div>
-
-      <div class="panel" id="buffpanel" hidden>
-        <div class="panel-h"><h2>Active effects</h2></div>
-        <div class="panel-b" style="padding-top:10px"><div class="buffs" id="buffs"></div></div>
-      </div>
-
-      <div class="panel">
-        <div class="panel-h"><h2>Commit log</h2><button class="iconbtn" id="btn-stats" style="width:26px;height:24px;font-size:11px" title="Career stats">&#8942;</button></div>
-        <div class="log" id="log"></div>
+      <div class="rank-prog">
+        <div class="bar"><i id="rank-bar" style="width:0%"></i></div>
+        <div class="rank-next"><span id="rank-next">Next: Hobbyist</span><span id="rank-need" class="num">0 / 400</span></div>
       </div>
     </div>
-
-    <div class="panel">
-      <div class="tabstrip">
-        <div class="tabs" role="tablist" id="tabs">
-          <button class="tab" role="tab" data-tab="tree" aria-selected="true">Tree<span class="dot" id="dot-tree" hidden></span></button>
-          <button class="tab" role="tab" data-tab="track" aria-selected="false">Track<span class="dot" id="dot-trk" hidden></span></button>
-          <button class="tab" role="tab" data-tab="career" aria-selected="false">Career</button>
-          <button class="tab" role="tab" data-tab="awards" aria-selected="false">Awards</button>
-          <button class="tab" role="tab" data-tab="reset" aria-selected="false">Job Hop<span class="dot" id="dot-rst" hidden></span></button>
-        </div>
-      </div>
-
-      <div class="tabpane" id="pane-tree">
-        <p class="hint" id="tree-hint"></p>
-        <div class="filters">
-          <input type="search" id="tree-q" placeholder="Search every layer…" spellcheck="false" />
-          <select id="tree-mode">
-            <option value="all">No lens</option>
-            <option value="avail">Available</option>
-            <option value="afford">Affordable now</option>
-            <option value="owned">Owned</option>
-          </select>
-          <span class="counthint" id="tree-count"></span>
-        </div>
-        <div class="tresults" id="tree-results"></div>
-        <div class="skillwrap">
-          <div class="layerlist" id="layerlist"></div>
-          <div class="treecol">
-            <div id="layerhead"></div>
-            <div class="zoombar">
-              <span class="modeswitch" id="tree-mode-switch">
-                <button class="minibtn" data-mode="web">Web</button>
-                <button class="minibtn" data-mode="layers">Layers</button>
-              </span>
-              <button class="minibtn" id="zoom-out" title="Zoom out" aria-label="Zoom out">&minus;</button>
-              <button class="minibtn" id="zoom-in" title="Zoom in" aria-label="Zoom in">+</button>
-              <button class="minibtn" id="zoom-fit">Fit</button>
-              <span class="zoomval num" id="zoom-val"></span>
-              <span class="modeswitch" id="tree-density">
-                <button class="minibtn" data-density="tight">Tight</button>
-                <button class="minibtn" data-density="normal">Roomy</button>
-              </span>
-              <span class="legend" id="tree-fams"></span>
-            </div>
-            <div class="treecanvas" id="treecanvas"></div>
-            <div class="treedetail" id="treedetail"></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="tabpane" id="pane-track" hidden><div id="track-body"></div></div>
-
-      <div class="tabpane" id="pane-career" hidden>
-        <p class="hint">Your ladder. Every promotion multiplies pay and output permanently &mdash; for this run.</p>
-        <div class="list" id="ranks"></div>
-      </div>
-
-      <div class="tabpane" id="pane-awards" hidden>
-        <p class="hint">Each award earned adds <b>+1%</b> to all code output, forever. <span id="ach-count" class="num"></span></p>
-        <div class="grid2" id="awards"></div>
-      </div>
-
-      <div class="tabpane" id="pane-reset" hidden><div id="reset-body"></div></div>
-    </div>
-  </div>
-
-  <div class="foot">Progress saves to this browser automatically.</div>
+  </main>
 </div>
 
 <div class="eventzone" id="eventzone"></div>
+<div class="toasts" id="toasts"></div>
 <div id="modal-root"></div>
 `;

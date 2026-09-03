@@ -14,6 +14,7 @@
 import type { BranchId } from "../core/types";
 import type { Density, TreeEdge, WebNode } from "./tree";
 import { setDensity } from "./tree";
+import { persistView, view, viewIsFresh } from "./viewstore";
 import type { NodeSpec } from "./treemodel";
 import { anchorSpec, genSpec, register, skillSpec, upgradeSpec } from "./treemodel";
 import { D, S, SKILL_BY_ID } from "../core/engine";
@@ -212,57 +213,19 @@ build();
  *  View state — which folds are open, which families are drawn
  * ---------------------------------------------------------------- */
 
-const VIEW_KEY = "zero10x.view.v1";
-
-interface View {
-  mode: "web" | "layers";
-  open: string[];
-  families: string[];
-  density: Density;
+/* a fresh store starts with the centre and Foundation open: you, four hubs, g1–g3, the eight gateways */
+if (viewIsFresh) {
+  view.open = [YOU, "sk:g0"];
+  view.families = FAMILIES.filter((f) => f.on).map((f) => f.id);
 }
 
-const defaults: View = {
-  mode: "web",
-  /** the centre and Foundation: you, four hubs, g1–g3 and the eight branch gateways */
-  open: [YOU, "sk:g0"],
-  families: FAMILIES.filter((f) => f.on).map((f) => f.id),
-  density: "tight",
-};
-
-function loadView(): View {
-  try {
-    const raw = localStorage.getItem(VIEW_KEY);
-    if (!raw) return { ...defaults };
-    const parsed = JSON.parse(raw) as Partial<View>;
-    return {
-      mode: parsed.mode === "layers" ? "layers" : "web",
-      open: Array.isArray(parsed.open) ? parsed.open : [...defaults.open],
-      families: Array.isArray(parsed.families) ? parsed.families : [...defaults.families],
-      density: parsed.density === "normal" ? "normal" : "tight",
-    };
-  } catch {
-    return { ...defaults };
-  }
-}
-
-const view = loadView();
 const open = new Set(view.open);
 const families = new Set(view.families);
 
 function persist(): void {
-  try {
-    localStorage.setItem(
-      VIEW_KEY,
-      JSON.stringify({
-        mode: view.mode,
-        open: [...open],
-        families: [...families],
-        density: view.density,
-      }),
-    );
-  } catch {
-    /* private window or storage disabled — the map still works, it just forgets */
-  }
+  view.open = [...open];
+  view.families = [...families];
+  persistView();
 }
 
 export const mode = (): "web" | "layers" => view.mode;
