@@ -7,3 +7,4 @@ Append-only. Новые записи добавляются снизу. Форм
 - 2026-09-03 — создан корневой CLAUDE.md и этот журнал — pending
 - 2026-09-03 — tier-5 gate приведён к PLAN.md (Skill.reqLevel + skillUnlocked), 8 уникальных effect kinds на ветку со сдвигом по тиру и джиттером силы (138 дублей описаний -> 0), уникальные имена gateway, integrity-проверки в gen-content.mjs — pending
 - 2026-09-03 — вкладка Branches перерисована деревом: src/ui/tree.ts (раскладка, SVG-рёбра, зум), branches.ts на build/paint + панель деталей, Foundation как карта веток — pending
+- 2026-09-03 — gstack отключён: снят PreToolUse/Skill-гейт check-gstack.sh из .claude/settings.json (глобальный SessionStart-хук gstack тоже убран) — pending

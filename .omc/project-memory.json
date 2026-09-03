@@ -35,14 +35,20 @@
   "hotPaths": [
     {
       "path": "PLAN.md",
+      "accessCount": 5,
+      "lastAccessed": 1788461019140,
+      "type": "file"
+    },
+    {
+      "path": "C:\\Users\\Gebruiker\\.claude\\plans\\enumerated-discovering-scone.md",
       "accessCount": 4,
-      "lastAccessed": 1788458146733,
+      "lastAccessed": 1788460935991,
       "type": "file"
     },
     {
       "path": "src\\ui\\branches.ts",
-      "accessCount": 3,
-      "lastAccessed": 1788459652676,
+      "accessCount": 4,
+      "lastAccessed": 1788460948893,
       "type": "file"
     },
     {
@@ -52,9 +58,45 @@
       "type": "file"
     },
     {
-      "path": "C:\\Users\\Gebruiker\\.claude\\plans\\enumerated-discovering-scone.md",
+      "path": "src\\ui\\shell.ts",
       "accessCount": 2,
-      "lastAccessed": 1788459289488,
+      "lastAccessed": 1788460947707,
+      "type": "file"
+    },
+    {
+      "path": "src\\ui\\setup.ts",
+      "accessCount": 2,
+      "lastAccessed": 1788460950629,
+      "type": "file"
+    },
+    {
+      "path": "src\\ui\\shop.ts",
+      "accessCount": 2,
+      "lastAccessed": 1788460951071,
+      "type": "file"
+    },
+    {
+      "path": "src\\core\\types.ts",
+      "accessCount": 2,
+      "lastAccessed": 1788460956635,
+      "type": "file"
+    },
+    {
+      "path": "src\\data\\branches.ts",
+      "accessCount": 2,
+      "lastAccessed": 1788460958200,
+      "type": "file"
+    },
+    {
+      "path": "src\\core\\engine.ts",
+      "accessCount": 2,
+      "lastAccessed": 1788460965870,
+      "type": "file"
+    },
+    {
+      "path": "src\\core\\actions.ts",
+      "accessCount": 2,
+      "lastAccessed": 1788460966005,
       "type": "file"
     },
     {
@@ -70,12 +112,6 @@
       "type": "file"
     },
     {
-      "path": "src\\core\\types.ts",
-      "accessCount": 1,
-      "lastAccessed": 1788458164171,
-      "type": "file"
-    },
-    {
       "path": "scripts\\gen-content.mjs",
       "accessCount": 1,
       "lastAccessed": 1788458173649,
@@ -88,39 +124,39 @@
       "type": "file"
     },
     {
-      "path": "src\\core\\actions.ts",
-      "accessCount": 1,
-      "lastAccessed": 1788458181432,
-      "type": "file"
-    },
-    {
-      "path": "src\\core\\engine.ts",
-      "accessCount": 1,
-      "lastAccessed": 1788458199864,
-      "type": "file"
-    },
-    {
-      "path": "src\\data\\branches.ts",
-      "accessCount": 1,
-      "lastAccessed": 1788458200061,
-      "type": "file"
-    },
-    {
       "path": "src\\core\\state.ts",
       "accessCount": 1,
       "lastAccessed": 1788458213780,
       "type": "file"
     },
     {
-      "path": "src\\ui\\shell.ts",
-      "accessCount": 1,
-      "lastAccessed": 1788458952666,
-      "type": "file"
-    },
-    {
       "path": "src\\ui\\dom.ts",
       "accessCount": 1,
       "lastAccessed": 1788458952726,
+      "type": "file"
+    },
+    {
+      "path": "src\\ui\\tree.ts",
+      "accessCount": 1,
+      "lastAccessed": 1788460950375,
+      "type": "file"
+    },
+    {
+      "path": "src\\data\\generators.ts",
+      "accessCount": 1,
+      "lastAccessed": 1788460957352,
+      "type": "file"
+    },
+    {
+      "path": "src\\main.ts",
+      "accessCount": 1,
+      "lastAccessed": 1788460964721,
+      "type": "file"
+    },
+    {
+      "path": "src\\styles.css",
+      "accessCount": 1,
+      "lastAccessed": 1788461018691,
       "type": "file"
     }
   ],
