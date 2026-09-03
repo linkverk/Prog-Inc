@@ -70,3 +70,13 @@ was reverted; and the anti-overlap radius was using half the longer side, which 
 boxes meet corner-first on a nearly horizontal arc — it now uses half the diagonal. Also
 `layerLayout` memoised its layouts, so the flat view ignored the new spacing until the cache
 was cleared. Content counts untouched.
+
+## [2026-09-04] ingest | one page became eight
+
+The game moved from one screen with five tabs to a sidebar and eight pages (desk, tools,
+skills, career, awards, hop, stats, settings) with progressive reveal driven by
+`src/core/unlocks.ts`. New concept page [[progressive-reveal]] carries the unlock table.
+[[overview]] gained a Pages section, "One tree, one tab" became "One tree, one page", the
+view-state note now covers `page` and `seen[]`, and the section-5 open question records that
+`ui/pages/career.ts` and `ui/pages/awards.ts` now exist and `ui/panels.ts` is gone. Tools is
+documented as the one deliberate second view of the 12 generators. Content counts untouched.

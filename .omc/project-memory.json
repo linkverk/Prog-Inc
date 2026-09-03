@@ -9,7 +9,7 @@
     "runtime": null
   },
   "build": {
-    "buildCommand": "cat >> \"C:/Users/Gebruiker/.claude/plans/make-a-review-and-compressed-shamir.md\" <<'EOF'\n\n## Status — 2026-09-03 23:20 (session stopped by user)\n\n**Done (typecheck green, `npm run typecheck` passes):**\n- Steps 1–10 implemented. Committed by the user in `884f6ef`: `core/unlocks.ts`, `ui/viewstore.ts`,\n  `ui/router.ts`, `ui/nav.ts`, `ui/toast.ts`, `ui/shell.ts`, `ui/treegraph.ts`.\n- **Uncommitted in the working tree**: `src/main.ts` (rewritten), `src/ui/status.ts`\n  (dock painting, `floatText(zone, ev, txt)`), `src/ui/treemodel.ts` (`tiersOf` exported),\n  `src/ui/pages/*.ts` (8 pages), `src/styles/{base,nav,pages,tree}.css`, deleted\n  `src/styles.css` and `src/ui/panels.ts`, `TASKS.md` entry. Commit these first.\n- Headless smoke (scratchpad `smoke.cjs`, playwright-core from the npx cache +\n  `chromium_headless_shell-1223`) passed on a fresh save: Desk only → Awards + Tools reveal\n  with toasts → buy from Tools → keys `1`/Space → Settings page → hash restored on reload.\n- Two CSS bugs found by screenshot and fixed, not yet re-verified: `.navbtn[hidden]` /\n  `.page[hidden]` needed explicit `display:none`; tier chips needed\n  `.tool .tbody>.tiers{display:flex}` to wrap (was the mobile horizontal overflow).\n\n**Next session, in order:**\n1. `npm run typecheck`, then commit the working tree.\n2. Re-run `smoke2.cjs` (mid-game save). Its \"mid visible nav: desk only\" result was a test\n   artefact: `beforeunload` saves the fresh state over the injected save on reload. Inject\n   with `page.addInitScript` instead, or `page.goto` with a fresh context.\n3. Verify with the mid-game save: Skills/Career/Hop/Stats pages render, tree canvas fits\n   when opened from hidden, mobile bottom bar shows 4 + More, no horizontal scroll.\n4. Step 11 docs: PLAN.md §3 (\"no separate Setup list\" → Tools-page rule) and §5 layout;\n   README \"How the game works\" + \"Where things live\"; wiki overview \"One tree, one tab\" →\n   pages; new `wiki/pages/concepts/progressive-reveal.md`; TASKS.md final entry with hash.\n5. `npm run build` before the release commit.\n\n**Open design knobs (defaults in place):** unlock thresholds in `core/unlocks.ts`;\nlocked tier-chip presentation in `pages/tools.ts` `tierChip()` (shows threshold, dimmed).\nEOF\ncat > \"C:/Users/Gebruiker/.claude/projects/D--GitHub-Prog-Inc/memory/multipage-refactor-in-progress.md\" <<'EOF'\n---\nname: multipage-refactor-in-progress\ndescription: Zero to Ten-X one-page → multi-page refactor (sidebar, pages, progressive reveal) was mid-flight on 2026-09-03; handoff lives in the plan file\nmetadata:\n  type: project\n---\n\nOn 2026-09-03 the game was restructured from one page with tabs into a sidebar + 8 pages\n(desk, tools, skills, career, awards, hop, stats, settings) with progressive page reveal,\ntoasts and a quick dock. User decisions: left sidebar, progressive unlock, flat Tools page.\nWork stopped mid-verification; part committed by the user (884f6ef), rest left in the\nworking tree.\n\n**Why:** the user asked for a pro game-dev review and a \"more-page\" game; the session ended\nbefore docs (PLAN.md/README/wiki) were updated, so the spec still says \"one tree, one tab\".\n\n**How to apply:** open `~/.claude/plans/make-a-review-and-compressed-shamir.md` §Status\nfirst — it lists exactly what is uncommitted and the ordered next steps. Headless testing\nworks via playwright-core from the npx cache with chromium_headless_shell-1223 (Playwright\nMCP bridge extension is not installed). Bash heredocs over ~150 lines fail in this\nenvironment — write big files in two appends.\nEOF\ncd \"C:/Users/Gebruiker/.claude/projects/D--GitHub-Prog-Inc/memory\" && (grep -q multipage-refactor MEMORY.md 2>/dev/null || echo \"- [Multi-page refactor in progress](multipage-refactor-in-progress.md) — 2026-09-03 handoff: what is committed, what is not, next steps in plan file\" >> MEMORY.md) && tail -2 MEMORY.md && cd \"/d/GitHub/Prog Inc\" && npx tsc --noEmit && echo TYPECHECK_OK",
+    "buildCommand": "M=\"C:/Users/Gebruiker/.claude/projects/D--GitHub-Prog-Inc/memory\"; cat > \"$M/multipage-refactor-in-progress.md\" <<'EOF'\n---\nname: multipage-refactor-in-progress\ndescription: Zero to Ten-X one-page → multi-page refactor (sidebar, 8 pages, progressive reveal) finished 2026-09-04; only the docs commit was left uncommitted\nmetadata:\n  type: project\n---\n\nBetween 2026-09-03 and 2026-09-04 the game was restructured from one page with tabs into a\nsidebar + 8 pages (desk, tools, skills, career, awards, hop, stats, settings) with progressive\npage reveal (`src/core/unlocks.ts`), toasts and a quick dock. Code landed in `884f6ef` +\n`cf311cf` (user commits). On 2026-09-04 the mid-game headless smoke passed and the docs were\nsynced (PLAN.md §3 \"Pages\" + §5, README, wiki overview + `concepts/progressive-reveal.md`,\nindex, log, TASKS.md); that docs batch was left in the working tree for the user to commit.\n\n**Why:** the user asked for a pro game-dev review and a \"more-page\" game. User decisions:\nleft sidebar, progressive unlock, flat Tools page as the one second view of generators.\n\n**How to apply:** the plan file `~/.claude/plans/make-a-review-and-compressed-shamir.md` is\nhistorical now. Open knobs the user may want to tune: unlock thresholds in\n`src/core/unlocks.ts` (never play-tested) and locked tier-chip look in `src/ui/pages/tools.ts`\n`tierChip()`. Headless testing: playwright-core from the npx cache +\n`chromium_headless_shell-1223`; inject saves with `context.addInitScript` (a plain\n`localStorage.setItem` + reload gets overwritten by `beforeunload` save); a rank ≥3 save with\nno track needs `trackDeferred: true` or the specialisation modal blocks nav clicks.\nEOF\nsed -i 's|- \\[Multi-page refactor in progress\\](multipage-refactor-in-progress.md) — .*|- [Multi-page refactor](multipage-refactor-in-progress.md) — done 2026-09-04; open tuning knobs and headless-test gotchas|' \"$M/MEMORY.md\"; cat \"$M/MEMORY.md\"\ncat >> \"C:/Users/Gebruiker/.claude/plans/make-a-review-and-compressed-shamir.md\" <<'EOF'\n\n## Status — 2026-09-04 (complete)\n\nSteps 1–11 done. Code committed by the user (`884f6ef`, `cf311cf`). Mid-game smoke passed\n(all pages, hash restore, dock, mobile 4+More, no console errors). `npm run build` green,\n`npm run stats` unchanged. Docs batch (PLAN.md, README.md, wiki ×4, TASKS.md) left in the\nworking tree for the user to commit.\nEOF",
     "testCommand": null,
     "lintCommand": null,
     "devCommand": null,
@@ -58,6 +58,12 @@
       "type": "file"
     },
     {
+      "path": "PLAN.md",
+      "accessCount": 14,
+      "lastAccessed": 1788473991249,
+      "type": "file"
+    },
+    {
       "path": "src\\ui\\treegraph.ts",
       "accessCount": 13,
       "lastAccessed": 1788468744318,
@@ -67,12 +73,6 @@
       "path": "C:\\Users\\GEBRUI~1\\AppData\\Local\\Temp\\claude\\D--GitHub-Prog-Inc\\8ab29a83-d550-4cc1-af46-4b23b8ce3908\\scratchpad\\cdp3.mjs",
       "accessCount": 11,
       "lastAccessed": 1788464271750,
-      "type": "file"
-    },
-    {
-      "path": "PLAN.md",
-      "accessCount": 11,
-      "lastAccessed": 1788467334551,
       "type": "file"
     },
     {
@@ -88,9 +88,15 @@
       "type": "directory"
     },
     {
+      "path": "README.md",
+      "accessCount": 7,
+      "lastAccessed": 1788474034455,
+      "type": "file"
+    },
+    {
       "path": "wiki\\pages\\overview.md",
-      "accessCount": 6,
-      "lastAccessed": 1788467380079,
+      "accessCount": 7,
+      "lastAccessed": 1788474057612,
       "type": "file"
     },
     {
@@ -121,12 +127,6 @@
       "path": "C:\\Users\\GEBRUI~1\\AppData\\Local\\Temp\\claude\\D--GitHub-Prog-Inc\\8ab29a83-d550-4cc1-af46-4b23b8ce3908\\scratchpad\\web-overview.png",
       "accessCount": 5,
       "lastAccessed": 1788464337791,
-      "type": "file"
-    },
-    {
-      "path": "README.md",
-      "accessCount": 5,
-      "lastAccessed": 1788467335173,
       "type": "file"
     },
     {

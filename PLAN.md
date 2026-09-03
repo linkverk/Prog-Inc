@@ -132,16 +132,46 @@ Craft owns the bug-and-quality family, Business owns income and discounts, Syste
 machines and offline. The rotation shifts by one per tier, and the magnitude of a level
 varies with position (×0.85 to ×1.3), so no two skills in one branch and tier read alike.
 
+### Pages
+
+The game is not one screen. A left sidebar (a bottom bar with four slots and **More** at
+≤860px) lists the pages the player has earned, and a fresh game starts with exactly one
+of them. A page opens when its rule first becomes true; the rule is a pure function of
+state in `src/core/unlocks.ts`, nothing is written to the save, and an old save opens with
+everything it has already reached and no announcement. A new reveal is one log line, one
+toast and a **new** badge that clears on the first visit.
+
+| page | contents | opens when |
+|---|---|---|
+| Desk | editor, Write code, codebase health and Squash, specialisation signature, active effects, commit log | always |
+| Tools | the 12 generators as a flat list, each with its eight tier upgrades as chips | the first tool is affordable, or any tool is owned |
+| Skills | the tree — everything below this heading | `g0` is affordable, or any skill is owned, or rank ≥ 1 |
+| Career | rank ladder, specialisation cards, mastery | rank ≥ 1 |
+| Awards | achievements | the first award |
+| Job Hop | prestige summary and perks; the button itself still needs 20M lines | 1M lines this run, or any hop, or any lifetime reputation |
+| Stats | the numbers, branch currency table, mastery | 1 000 lines lifetime |
+| Settings | save export / import / erase, theme, hotkeys | always, from the HUD gear |
+
+All pages are mounted at boot and toggled, so the Desk keeps its ids for the 100 ms status
+paint while another page is active. A **quick dock** (Write code, Squash) sits under the
+sidebar on every page but the Desk, because the click loop is the game and the Game
+Developer track's hype meter drains when clicking stops. The active page is in the URL
+hash (`#/skills`), keys `1`–`9` jump between unlocked pages, and the last page is restored
+on reload with the rest of the view state (`zero10x.view.v1`).
+
 ### How the tree is shown
 
-**Everything you can buy is one tree.** The Tree tab is the only shop in the game: 300
-skills, 450 upgrades and 12 generators, 762 nodes, all drawn as one graph whose edges are
-the requirements that already live in the data — `Skill.req`, `Upgrade.reqGen`,
-`reqBranch`, `reqTrack`. There is no separate Setup list and no separate upgrade grid;
-that a generator upgrade wants 25 of that generator is a line on the canvas, not a
-sentence in a tooltip.
+**Everything you can buy is one tree.** The Skills page is the only place in the game
+that sells skills and upgrades: 300 skills, 450 upgrades and 12 generators, 762 nodes,
+all drawn as one graph whose edges are the requirements that already live in the data —
+`Skill.req`, `Upgrade.reqGen`, `reqBranch`, `reqTrack`. There is no separate upgrade
+grid; that a generator upgrade wants 25 of that generator is a line on the canvas, not a
+sentence in a tooltip. The one concession is the Tools page: a second view of the 12
+generators and their 96 tier upgrades as a classic idle list, because the first five
+minutes of a run are "buy a Notepad", and a canvas is a poor place to learn that. Tools
+sells nothing the tree does not; the two views read the same state and the same prices.
 
-The tab draws that graph two ways, switched by a control beside the zoom buttons.
+The page draws that graph two ways, switched by a control beside the zoom buttons.
 
 #### Web — the radial map
 
@@ -215,7 +245,7 @@ threshold becomes visible instead of surprising. Nodes are compact (name, level,
 and a panel underneath carries the description, the price and the buy buttons: `+1 / +10 /
 Max` for a skill, `×1 / ×10 / Max` for a generator, one `Buy` for an upgrade. Structure is
 built once per layer and only repainted afterwards, so zoom, scroll and selection survive
-the tab's periodic refresh.
+the page's periodic refresh.
 
 A search box above the canvas matches names across **all** layers at once and highlights
 the hits; a result is a button that switches layer, selects the node and scrolls it into
@@ -279,8 +309,12 @@ zero-to-ten-x/
 │  ├─ gen-content.mjs          writes the two generated data files
 │  └─ content-stats.mjs        prints the real counts (verify the claims above)
 └─ src/
-   ├─ main.ts                  boot
-   ├─ styles.css
+   ├─ main.ts                  boot, game loop, offline catch-up, page reveals
+   ├─ styles/
+   │  ├─ base.css              tokens, HUD, desk, modals, chips
+   │  ├─ nav.css               sidebar, bottom bar, quick dock, toasts
+   │  ├─ pages.css             tools list, career, awards, hop, stats, settings
+   │  └─ tree.css              the Skills page canvas
    ├─ core/
    │  ├─ types.ts              Fx, Skill, Upgrade, GameState …
    │  ├─ format.ts             number formatting
@@ -290,6 +324,7 @@ zero-to-ten-x/
    │  ├─ engine.ts             recompute(), tick(), branch-currency faucets
    │  ├─ actions.ts            click, debug, buy*, job hop
    │  ├─ events.ts             opportunities and their outcomes
+   │  ├─ unlocks.ts            which pages the player has earned — pure functions of state
    │  └─ save.ts               localStorage + export / import
    ├─ data/
    │  ├─ generators.ts  ranks.ts  branches.ts  tracks.ts
@@ -298,11 +333,17 @@ zero-to-ten-x/
    │  └─ upgrades.generated.ts   ← 450 upgrades
    └─ ui/
       ├─ dom.ts  shell.ts  modal.ts  status.ts
+      ├─ router.ts            the Page contract, go(id), hash sync, keys 1–9
+      ├─ nav.ts               sidebar / bottom bar markup and badges
+      ├─ toast.ts             the fixed toast stack
+      ├─ viewstore.ts         zero10x.view.v1: tree view state + last page + seen pages
+      ├─ pages/
+      │  ├─ desk.ts  tools.ts  skills.ts  career.ts
+      │  └─ awards.ts  hop.ts  stats.ts  settings.ts
       ├─ tree.ts              generic canvas: layouts, edges, nodes, zoom — no game rules
       ├─ treemodel.ts         what a node *is*: layers, specs, live status, buy dispatch
       ├─ treegraph.ts         the whole game as one graph: hierarchy, edge families, anchors
-      ├─ treetab.ts           the Tree tab: web/layers, rail, canvas, search, detail panel
-      └─ panels.ts            career, awards, track, prestige, stats, offline report
+      └─ treetab.ts           the Skills page: web/layers, rail, canvas, search, detail panel
 ```
 
 ---

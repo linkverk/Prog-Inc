@@ -1,12 +1,12 @@
 ---
 type: index
-updated: 2026-09-03
+updated: 2026-09-04
 ---
 
 # Index
 
 Content catalog. Read this first on any query, then drill into the pages it points at.
-Pages: 13 (1 overview, 8 entities, 3 concepts, 1 source). Sources ingested: 1.
+Pages: 14 (1 overview, 8 entities, 4 concepts, 1 source). Sources ingested: 1.
 
 ## Overview
 
@@ -21,6 +21,7 @@ Pages: 13 (1 overview, 8 entities, 3 concepts, 1 source). Sources ingested: 1.
 | [[currency-model]] | Twelve currencies — four global (LOC, `$`, KP, star), eight branch-local. Which faucet feeds which sink. |
 | [[gateway-rule]] | 36 of 300 skills are one-shot gateways (`maxLevel: 1`); the G0→G1→branch hierarchy that gates the tree. |
 | [[faucet-antagonism]] | Craft and Security fight over one tap: Craft removes bugs, Security is paid per bug. The build-defining conflict. |
+| [[progressive-reveal]] | A fresh game is one page; the other six open at state milestones computed from `S` every second, nothing saved. The unlock table with `src:line` pins. |
 
 ## Entities — branches
 

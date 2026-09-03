@@ -68,10 +68,24 @@ gone, the other wants them to exist.
 branch ones, and three sub-paths inside each branch. They cost once and can never be
 levelled. Everything else has 3 to 12 levels, 2,316 purchasable levels in total.
 
+**Pages open as you earn them.** A fresh game is one page, the **Desk**: an editor, a
+Write code button, bugs to squash and a commit log. The sidebar grows as you play — **Tools**
+when the first one is affordable, **Awards** with the first award, **Skills** when the first
+gateway is within reach, **Career** at your first promotion, **Stats** at a thousand lines,
+**Job Hop** at a million lines in one run. Each reveal is a log line, a toast and a *new*
+badge. Nothing about this is stored in the save: an old save opens with everything it has
+already reached. Keys `1`–`9` jump between pages, the page is in the URL hash, and a quick
+dock under the sidebar keeps Write code and Squash one click away wherever you are. Below
+860px the sidebar becomes a bottom bar with four slots and **More**.
+
+**Tools** is the classic idle list: one row per tool with its price, its rate and its eight
+upgrade tiers as chips, and a `×1 / ×10 / Max` selector. It is a second view of the same
+twelve tools the tree sells; the two never disagree on a count or a price.
+
 **One tree, not three shops.** Everything you can buy — 300 skills, 450 upgrades, 12 tools —
-is one graph on the **Tree** tab, wired by what unlocks what. Zoom with the buttons, drag the
-canvas around, buy from the panel underneath: `+1 / +10 / Max` for a skill, `×1 / ×10 / Max`
-for a tool, one **Buy** for an upgrade.
+is one graph on the **Skills** page, wired by what unlocks what. Zoom with the buttons, drag
+the canvas around, buy from the panel underneath: `+1 / +10 / Max` for a skill,
+`×1 / ×10 / Max` for a tool, one **Buy** for an upgrade.
 
 **Web** is the default view: you in the middle, and 794 nodes fanning out in rings — your
 tools, the money ladders, your rank ladder and the eight branches. A chevron folds a whole
@@ -117,9 +131,17 @@ src/core/     rules — no DOM in here
   state.ts      new game, migrate, prestige reset
   save.ts       localStorage + export/import
   events.ts     opportunities and incidents
+  unlocks.ts    which pages the player has earned — pure functions of state
 src/data/     content — mostly data, no logic
   *.generated.ts  written by scripts/gen-content.mjs, committed on purpose
 src/ui/       rendering — reads core, never mutates it directly
+  router.ts     the Page contract, go(id), URL hash, keys 1–9
+  nav.ts        sidebar / bottom bar, badges
+  toast.ts      the toast stack
+  viewstore.ts  zero10x.view.v1 — tree view state, last page, seen pages
+  pages/        one file per page: desk, tools, skills, career, awards, hop, stats, settings
+  tree*.ts      the Skills page canvas (generic renderer, node model, the game as a graph, the page)
+src/styles/   base.css nav.css pages.css tree.css, imported in that order from main.ts
 ```
 
 Adding a skill or an upgrade means editing `scripts/gen-content.mjs` and running `npm run gen`;

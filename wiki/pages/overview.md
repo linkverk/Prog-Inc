@@ -1,9 +1,9 @@
 ---
 type: concept
 id: overview
-updated: 2026-09-03
+updated: 2026-09-04
 sources: [plan-md]
-code: [PLAN.md, src/main.ts, src/core/engine.ts, src/ui/tree.ts, src/ui/treemodel.ts, src/ui/treegraph.ts, src/ui/treetab.ts]
+code: [PLAN.md, src/main.ts, src/core/engine.ts, src/core/unlocks.ts, src/ui/router.ts, src/ui/nav.ts, src/ui/tree.ts, src/ui/treemodel.ts, src/ui/treegraph.ts, src/ui/treetab.ts]
 ---
 
 # Zero to Ten-X — overview
@@ -26,12 +26,26 @@ A job hop (prestige) resets money and shop upgrades, pays reputation, and keeps 
 See [[currency-model]] for why knowledge does only one job, and [[gateway-rule]] for why
 gateways can never be upgraded.
 
-## One tree, one tab
+## Pages
 
-Since 2026-09-03 every purchase in the game lives on a single **Tree** tab — the separate
-Setup and Upgrades tabs are gone. 762 nodes (300 skills + 450 shop upgrades + 12 generators)
-form one graph whose edges are the requirements already present in the data:
-`Skill.req`, `Upgrade.reqGen`, `reqBranch`, `reqTrack` (`src/ui/treemodel.ts`).
+Since 2026-09-04 the game is a sidebar and eight pages rather than one screen with five
+tabs: Desk, Tools, Skills, Career, Awards, Job Hop, Stats, and Settings behind the HUD gear.
+A fresh save shows the Desk alone; the rest open at state milestones — see
+[[progressive-reveal]] for the rules and why nothing about them is saved. `src/ui/router.ts`
+owns the page contract (mount once, toggle `hidden`, `#/<id>` in the hash, keys `1`–`9`);
+`src/ui/nav.ts` paints the sidebar and, under 860px, a four-slot bottom bar with **More**.
+
+**Tools** is the one deliberate duplicate: the 12 generators and their 96 tier upgrades as a
+flat idle list (`src/ui/pages/tools.ts`), reading the same specs and prices as the tree
+through `src/ui/treemodel.ts`. Skills and shop upgrades are sold nowhere but the tree.
+
+## One tree, one page
+
+Since 2026-09-03 every purchase in the game lives on a single tree — first as a **Tree** tab
+replacing the separate Setup and Upgrades tabs, now as the **Skills** page. 762 nodes
+(300 skills + 450 shop upgrades + 12 generators) form one graph whose edges are the
+requirements already present in the data: `Skill.req`, `Upgrade.reqGen`, `reqBranch`,
+`reqTrack` (`src/ui/treemodel.ts`).
 
 762 nodes do not fit on one canvas, so a rail cuts the graph into **layers**, each a
 connected region of it, with a node acting as the door between two (`src/ui/treetab.ts`):
@@ -72,8 +86,9 @@ centre, which is what makes forty cross-branch links legible instead of felt.
 
 `fx.gens` (96) and `fx.cur` (64) are deliberately **not** drawn: in both the effect edge
 would land on the node that is already the parent. View state — mode, open folds, which
-families are drawn, node density — lives in `localStorage` under `zero10x.view.v1`, kept out
-of the save so `zero10x.save.v3` needs no migration.
+families are drawn, node density, plus the last page and which pages have been visited —
+lives in `localStorage` under `zero10x.view.v1` (`src/ui/viewstore.ts`), kept out of the
+save so `zero10x.save.v3` needs no migration.
 
 ### Density
 
@@ -119,7 +134,10 @@ ends of the same tap — see [[faucet-antagonism]].
 
 - Balance targets in `PLAN.md` section 6 are authored, not measured. Nothing has played a run
   and timed the first gateway at ~8 min. **Unverified.**
-- `PLAN.md` section 5 listed UI modules that do not exist (`tabs.ts`, `career.ts`, `awards.ts`,
-  `prestige.ts`); the real tree has `ui/shell.ts`, `ui/branches.ts`, `ui/panels.ts`.
-  Corrected 2026-09-03, but it is worth knowing the spec was written ahead of the code.
+- `PLAN.md` section 5 listed UI modules that did not exist (`tabs.ts`, `career.ts`, `awards.ts`,
+  `prestige.ts`); corrected 2026-09-03 to the tree on disk. On 2026-09-04 the pages refactor
+  created `ui/pages/career.ts` and `ui/pages/awards.ts` for real and deleted `ui/panels.ts`,
+  so the spec was right about the shape and wrong about the timing.
+- The page thresholds in `src/core/unlocks.ts` are authored defaults, never play-tested — see
+  [[progressive-reveal]].
 - No tests exist. `npm run build` (gen + typecheck + vite) is the only gate.
