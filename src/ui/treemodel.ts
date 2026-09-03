@@ -284,6 +284,11 @@ export function layerLayout(layer: LayerId): TreeLayout {
   return ensureLayer(layer);
 }
 
+/** Throw away the cached layouts — the spacing they were measured with has changed. */
+export function resetLayouts(): void {
+  layouts.clear();
+}
+
 export function specById(id: string): NodeSpec | undefined {
   return specs.get(id);
 }

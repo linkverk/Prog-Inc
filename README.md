@@ -83,6 +83,9 @@ families on and off: `requires`, `currency` (a branch skill paying a *different*
 `rivalry` (Craft and Security fighting over the same bugs), `career`, `affects`. Whatever
 the chips say, selecting a node lights every edge it owns.
 
+**Tight / Roomy** beside the zoom buttons sets how much air sits between nodes. Tight is the
+default and halves every gap; the choice is remembered along with your view.
+
 **Layers** is the flat view for shopping: a rail on the left picks one region and lays it
 out in a grid — your **Setup** (each tool with its eight upgrade tiers), **Foundation** (the
 map of all eight branches), the **branches** themselves (tier per row, gateway trunk down

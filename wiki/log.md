@@ -57,3 +57,16 @@ a UI special case. The layered view survives behind a Web/Layers switch. Two bug
 fixed by the headless pass: the layer cache was clearing the shared spec registry (anchors
 vanished from `specById`), and ring radii ignored the neighbouring rings' node boxes (eight
 overlapping pairs at the centre — now zero). Content counts untouched: 300 / 450.
+
+## [2026-09-03] lint | node spacing halved, Tight/Roomy switch
+Nodes sat too far apart: 12×40 px in the grid, rings 60 px plus their neighbours' boxes, so
+even the sixteen-node overview stretched to 1249 px and fitted at 40%. The layout constants
+became a `Metrics` object with two presets (`tight` default, `normal`), switchable beside the
+zoom buttons and remembered in `zero10x.view.v1`. Overview 1303 → 1143 px, an opened Craft
+2523 → 2219, the flat Craft layer 1124 → 1058, smallest neighbour gap 16 → 6 px, still zero
+overlaps. Two things the measurements caught and the eye would not: sharing the circle by
+`leaves^0.5` shrinks the folded overview but *grows* an opened branch (2366 → 3586 px), so it
+was reverted; and the anti-overlap radius was using half the longer side, which lets two
+boxes meet corner-first on a nearly horizontal arc — it now uses half the diagonal. Also
+`layerLayout` memoised its layouts, so the flat view ignored the new spacing until the cache
+was cleared. Content counts untouched.

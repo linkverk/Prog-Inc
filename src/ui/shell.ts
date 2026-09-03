@@ -108,6 +108,10 @@ export const SHELL = `
               <button class="minibtn" id="zoom-in" title="Zoom in" aria-label="Zoom in">+</button>
               <button class="minibtn" id="zoom-fit">Fit</button>
               <span class="zoomval num" id="zoom-val"></span>
+              <span class="modeswitch" id="tree-density">
+                <button class="minibtn" data-density="tight">Tight</button>
+                <button class="minibtn" data-density="normal">Roomy</button>
+              </span>
               <span class="legend" id="tree-fams"></span>
             </div>
             <div class="treecanvas" id="treecanvas"></div>

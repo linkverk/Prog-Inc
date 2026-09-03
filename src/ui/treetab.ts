@@ -2,11 +2,12 @@ import type { BranchId } from "../core/types";
 import type { Found, LayerId, NodeSpec } from "./treemodel";
 import {
   LAYERS, UPGRADE_TOTAL, affordableLevels, allNodes, anyAffordable, buyNode, layerLayout,
-  levelOf, lockReason, priceLabel, specById, statusOf, unlocked, upgradesOwned,
+  levelOf, lockReason, priceLabel, resetLayouts, specById, statusOf, unlocked, upgradesOwned,
 } from "./treemodel";
 import {
-  FAMILIES, allWebNodes, branchHubId, connectionsOf, edgeCount, familiesOn, hubOf, isOpen,
-  mode, nodeCount, openPath, setMode, shapeKey, toggleFamily, toggleOpen, webEdges, webRoot,
+  FAMILIES, allWebNodes, branchHubId, connectionsOf, density, edgeCount, familiesOn, hubOf,
+  isOpen, mode, nodeCount, openPath, setDensityMode, setMode, shapeKey, toggleFamily,
+  toggleOpen, webEdges, webRoot,
 } from "./treegraph";
 import { D, S, branchOpen } from "../core/engine";
 import { BRANCH_BY_ID } from "../data/branches";
@@ -15,7 +16,7 @@ import { fmt, money } from "../core/format";
 import { $, delegate, esc } from "./dom";
 import {
   FIT_MIN, ZOOM_MIN, buildTree, centreView, enablePan, fitZoom, layoutRadial, paintTree,
-  scrollNodeIntoView, setZoom, type TreeView,
+  scrollNodeIntoView, setDensity, setZoom, type Density, type TreeView,
 } from "./tree";
 
 /** Highlight modes — the old shop filters, turned into a lens over the whole tree. */
@@ -104,6 +105,14 @@ export function initTree(changed: () => void): void {
     refit();
   });
 
+  delegate($("tree-density"), "[data-density]", (t) => {
+    setDensityMode(t.dataset.density as Density);
+    // the flat layers are memoised, and they were measured with the old spacing
+    resetLayouts();
+    renderTree();
+    refit();
+  });
+
   $("zoom-in").addEventListener("click", () => nudgeZoom(0.15));
   $("zoom-out").addEventListener("click", () => nudgeZoom(-0.15));
   $("zoom-fit").addEventListener("click", refit);
@@ -118,6 +127,8 @@ export function initTree(changed: () => void): void {
   });
 
   enablePan($("treecanvas"));
+  // the layouts are pure functions of the metrics, so this has to land before the first build
+  setDensity(density());
 
   $("tree-hint").innerHTML =
     `Every purchase in the game — ${nodeCount()} nodes — is one map, wired by what unlocks ` +
@@ -161,6 +172,9 @@ export function renderTree(): void {
   const web = mode() === "web";
   document.querySelectorAll<HTMLElement>("#tree-mode-switch [data-mode]").forEach((b) => {
     b.setAttribute("aria-pressed", String((b.dataset.mode === "web") === web));
+  });
+  document.querySelectorAll<HTMLElement>("#tree-density [data-density]").forEach((b) => {
+    b.setAttribute("aria-pressed", String(b.dataset.density === density()));
   });
   $("tree-fams").hidden = !web;
   // the map wants room; a flat layer is happier short, next to its detail panel
@@ -325,7 +339,9 @@ function renderFamilies(): void {
  * ---------------------------------------------------------------- */
 
 function ensureTree(): void {
-  const key = mode() === "web" ? `web:${shapeKey()}` : `layers:${selected}`;
+  // the density is part of the shape: changing it has to rebuild, not just repaint
+  const key =
+    mode() === "web" ? `web:${density()}:${shapeKey()}` : `layers:${density()}:${selected}`;
   if (builtFor === key && view) return;
   const host = $("treecanvas");
   const keepLeft = host.scrollLeft;

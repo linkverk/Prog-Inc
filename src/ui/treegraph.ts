@@ -12,7 +12,8 @@
  */
 
 import type { BranchId } from "../core/types";
-import type { TreeEdge, WebNode } from "./tree";
+import type { Density, TreeEdge, WebNode } from "./tree";
+import { setDensity } from "./tree";
 import type { NodeSpec } from "./treemodel";
 import { anchorSpec, genSpec, register, skillSpec, upgradeSpec } from "./treemodel";
 import { D, S, SKILL_BY_ID } from "../core/engine";
@@ -217,6 +218,7 @@ interface View {
   mode: "web" | "layers";
   open: string[];
   families: string[];
+  density: Density;
 }
 
 const defaults: View = {
@@ -224,6 +226,7 @@ const defaults: View = {
   /** the centre and Foundation: you, four hubs, g1–g3 and the eight branch gateways */
   open: [YOU, "sk:g0"],
   families: FAMILIES.filter((f) => f.on).map((f) => f.id),
+  density: "tight",
 };
 
 function loadView(): View {
@@ -235,6 +238,7 @@ function loadView(): View {
       mode: parsed.mode === "layers" ? "layers" : "web",
       open: Array.isArray(parsed.open) ? parsed.open : [...defaults.open],
       families: Array.isArray(parsed.families) ? parsed.families : [...defaults.families],
+      density: parsed.density === "normal" ? "normal" : "tight",
     };
   } catch {
     return { ...defaults };
@@ -249,7 +253,12 @@ function persist(): void {
   try {
     localStorage.setItem(
       VIEW_KEY,
-      JSON.stringify({ mode: view.mode, open: [...open], families: [...families] }),
+      JSON.stringify({
+        mode: view.mode,
+        open: [...open],
+        families: [...families],
+        density: view.density,
+      }),
     );
   } catch {
     /* private window or storage disabled — the map still works, it just forgets */
@@ -260,6 +269,14 @@ export const mode = (): "web" | "layers" => view.mode;
 
 export function setMode(next: "web" | "layers"): void {
   view.mode = next;
+  persist();
+}
+
+export const density = (): Density => view.density;
+
+export function setDensityMode(next: Density): void {
+  view.density = next;
+  setDensity(next);
   persist();
 }
 

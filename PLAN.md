@@ -185,6 +185,11 @@ of their own — those upgrades already hang under their specialisation or their
 
 Whatever the switches say, selecting a node lights every edge it owns.
 
+Beside the zoom buttons sits a density switch, **Tight** (the default) and **Roomy**: it
+halves every gap — between rows, between rings, between neighbours on a ring — without
+touching the two terms that keep boxes apart, so a denser map is never an overlapping one.
+Both layouts read the same metrics, so the flat view tightens with it.
+
 Two links deliberately go undrawn: the `fx.gens` of the 96 generator upgrades and the
 `fx.cur` of the 64 branch upgrades. In both the effect edge would land on the node that is
 already the parent, so drawing it would double the line and say nothing.

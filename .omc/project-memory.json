@@ -9,7 +9,7 @@
     "runtime": null
   },
   "build": {
-    "buildCommand": "cd \"D:/GitHub/Prog Inc\" && npm run build 2>&1 | tail -5 && npm run stats 2>&1 | grep -E \"^SKILLS|^UPGRADES\"",
+    "buildCommand": "cd \"D:/GitHub/Prog Inc\" && npm run build 2>&1 | tail -4 && npm run stats 2>&1 | grep -E \"^SKILLS|^UPGRADES\"; pkill -f \"vite.*5179\" 2>/dev/null; curl -s -o /dev/null -m 2 -w \"dev still up: %{http_code}\\n\" http://localhost:5179/ || echo \"dev down\"",
     "testCommand": null,
     "lintCommand": null,
     "devCommand": null,
@@ -34,21 +34,27 @@
   "directoryMap": {},
   "hotPaths": [
     {
+      "path": "src\\ui\\tree.ts",
+      "accessCount": 21,
+      "lastAccessed": 1788465433349,
+      "type": "file"
+    },
+    {
       "path": "src\\ui\\treemodel.ts",
-      "accessCount": 20,
-      "lastAccessed": 1788464006505,
+      "accessCount": 21,
+      "lastAccessed": 1788465435620,
+      "type": "file"
+    },
+    {
+      "path": "src\\ui\\treetab.ts",
+      "accessCount": 14,
+      "lastAccessed": 1788465440487,
       "type": "file"
     },
     {
       "path": "C:\\Users\\GEBRUI~1\\AppData\\Local\\Temp\\claude\\D--GitHub-Prog-Inc\\8ab29a83-d550-4cc1-af46-4b23b8ce3908\\scratchpad\\cdp3.mjs",
       "accessCount": 11,
       "lastAccessed": 1788464271750,
-      "type": "file"
-    },
-    {
-      "path": "src\\ui\\tree.ts",
-      "accessCount": 11,
-      "lastAccessed": 1788465104228,
       "type": "file"
     },
     {
@@ -64,15 +70,15 @@
       "type": "file"
     },
     {
-      "path": "src\\ui\\treetab.ts",
-      "accessCount": 6,
-      "lastAccessed": 1788464311194,
+      "path": "src\\ui\\treegraph.ts",
+      "accessCount": 8,
+      "lastAccessed": 1788465160780,
       "type": "file"
     },
     {
       "path": "src\\ui\\shell.ts",
-      "accessCount": 5,
-      "lastAccessed": 1788463611413,
+      "accessCount": 6,
+      "lastAccessed": 1788465163060,
       "type": "file"
     },
     {
@@ -106,6 +112,12 @@
       "type": "file"
     },
     {
+      "path": "C:\\Users\\GEBRUI~1\\AppData\\Local\\Temp\\claude\\D--GitHub-Prog-Inc\\8ab29a83-d550-4cc1-af46-4b23b8ce3908\\scratchpad",
+      "accessCount": 4,
+      "lastAccessed": 1788465252280,
+      "type": "directory"
+    },
+    {
       "path": "src\\core\\engine.ts",
       "accessCount": 3,
       "lastAccessed": 1788461735285,
@@ -136,18 +148,6 @@
       "type": "file"
     },
     {
-      "path": "C:\\Users\\GEBRUI~1\\AppData\\Local\\Temp\\claude\\D--GitHub-Prog-Inc\\8ab29a83-d550-4cc1-af46-4b23b8ce3908\\scratchpad",
-      "accessCount": 3,
-      "lastAccessed": 1788463814135,
-      "type": "directory"
-    },
-    {
-      "path": "src\\ui\\treegraph.ts",
-      "accessCount": 3,
-      "lastAccessed": 1788464033470,
-      "type": "file"
-    },
-    {
       "path": "wiki\\pages\\overview.md",
       "accessCount": 3,
       "lastAccessed": 1788464397445,
@@ -157,6 +157,24 @@
       "path": "C:\\Users\\Gebruiker\\.claude\\plans\\make-a-plan-and-vectorized-meadow.md",
       "accessCount": 3,
       "lastAccessed": 1788464977462,
+      "type": "file"
+    },
+    {
+      "path": "README.md",
+      "accessCount": 3,
+      "lastAccessed": 1788465497947,
+      "type": "file"
+    },
+    {
+      "path": "TASKS.md",
+      "accessCount": 3,
+      "lastAccessed": 1788465502108,
+      "type": "file"
+    },
+    {
+      "path": "wiki\\log.md",
+      "accessCount": 3,
+      "lastAccessed": 1788465509141,
       "type": "file"
     },
     {
@@ -181,24 +199,6 @@
       "path": "C:\\Users\\GEBRUI~1\\AppData\\Local\\Temp\\claude\\D--GitHub-Prog-Inc\\8ab29a83-d550-4cc1-af46-4b23b8ce3908\\scratchpad\\tree-setup.png",
       "accessCount": 2,
       "lastAccessed": 1788462532738,
-      "type": "file"
-    },
-    {
-      "path": "README.md",
-      "accessCount": 2,
-      "lastAccessed": 1788464378895,
-      "type": "file"
-    },
-    {
-      "path": "wiki\\log.md",
-      "accessCount": 2,
-      "lastAccessed": 1788464405163,
-      "type": "file"
-    },
-    {
-      "path": "TASKS.md",
-      "accessCount": 2,
-      "lastAccessed": 1788464411056,
       "type": "file"
     },
     {
@@ -271,6 +271,18 @@
       "path": "C:\\Users\\GEBRUI~1\\AppData\\Local\\Temp\\claude\\D--GitHub-Prog-Inc\\8ab29a83-d550-4cc1-af46-4b23b8ce3908\\scratchpad\\web-craft.png",
       "accessCount": 1,
       "lastAccessed": 1788464292679,
+      "type": "file"
+    },
+    {
+      "path": "C:\\Users\\GEBRUI~1\\AppData\\Local\\Temp\\claude\\D--GitHub-Prog-Inc\\8ab29a83-d550-4cc1-af46-4b23b8ce3908\\scratchpad\\cdp4.mjs",
+      "accessCount": 1,
+      "lastAccessed": 1788465288666,
+      "type": "file"
+    },
+    {
+      "path": "C:\\Users\\GEBRUI~1\\AppData\\Local\\Temp\\claude\\D--GitHub-Prog-Inc\\8ab29a83-d550-4cc1-af46-4b23b8ce3908\\scratchpad\\web-tight.png",
+      "accessCount": 1,
+      "lastAccessed": 1788465481155,
       "type": "file"
     }
   ],

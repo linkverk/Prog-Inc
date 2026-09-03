@@ -26,12 +26,10 @@ export type Density = "tight" | "normal";
 /**
  * Everything that decides how much air sits between nodes.
  *
- * `spread` is the one that matters most on the web. Sectors are handed out in proportion
- * to how many leaves a subtree shows, so a folded Foundation with eleven children takes
- * eleven fourteenths of the circle and squeezes its three siblings into slivers — which
- * then forces the whole ring outwards so those slivers still fit their nodes. Sharing by
- * the square root instead keeps a folded neighbour from crowding everyone against the
- * centre, and roughly halves the map.
+ * Sharing the circle by the *square root* of a subtree's leaves was tried and reverted: it
+ * does shrink the folded overview, but it narrows the wedge of an opened branch, which
+ * pushes that branch's own ring much further out — an opened Craft grew from 2366 px to
+ * 3586 px. Angle stays proportional to leaves; density is gaps only.
  */
 interface Metrics {
   gapX: number;
@@ -42,13 +40,11 @@ interface Metrics {
   arcGap: number;
   /** how far an edge leaves its node before it starts bending towards the child */
   bend: number;
-  /** 1 shares angle by leaf count, 0.5 by its square root */
-  spread: number;
 }
 
 const DENSITY: Record<Density, Metrics> = {
-  tight: { gapX: 6, gapY: 20, pad: 12, ringGap: 18, arcGap: 6, bend: 12, spread: 0.5 },
-  normal: { gapX: 12, gapY: 40, pad: 24, ringGap: 60, arcGap: 16, bend: 24, spread: 1 },
+  tight: { gapX: 6, gapY: 20, pad: 12, ringGap: 14, arcGap: 6, bend: 12 },
+  normal: { gapX: 12, gapY: 40, pad: 24, ringGap: 60, arcGap: 16, bend: 24 },
 };
 
 let M = DENSITY.tight;
@@ -179,24 +175,24 @@ function gridPath(a: TreeNode, b: TreeNode): string {
   const y1 = a.y + a.h;
   const x2 = b.x + b.w / 2;
   const y2 = b.y;
-  return `M ${x1} ${y1} C ${x1} ${y1 + BEND}, ${x2} ${y2 - BEND}, ${x2} ${y2}`;
+  return `M ${x1} ${y1} C ${x1} ${y1 + M.bend}, ${x2} ${y2 - M.bend}, ${x2} ${y2}`;
 }
 
 /** One row per tier, each row centred. The shape a skill branch wants. */
 export function layoutRows(rows: TreeNodeSpec[][]): TreeLayout {
   const widest = rows.reduce((a, r) => Math.max(a, r.length), 1);
-  const width = PAD * 2 + widest * NODE_W + (widest - 1) * GAP_X;
-  const height = PAD * 2 + rows.length * NODE_H + (rows.length - 1) * GAP_Y;
+  const width = M.pad * 2 + widest * NODE_W + (widest - 1) * M.gapX;
+  const height = M.pad * 2 + rows.length * NODE_H + (rows.length - 1) * M.gapY;
 
   const nodes: TreeNode[] = [];
   rows.forEach((row, r) => {
-    const span = row.length * NODE_W + (row.length - 1) * GAP_X;
+    const span = row.length * NODE_W + (row.length - 1) * M.gapX;
     const startX = Math.round((width - span) / 2);
     row.forEach((spec, i) => {
       nodes.push({
         spec,
-        x: startX + i * (NODE_W + GAP_X),
-        y: PAD + r * (NODE_H + GAP_Y),
+        x: startX + i * (NODE_W + M.gapX),
+        y: M.pad + r * (NODE_H + M.gapY),
         w: NODE_W,
         h: NODE_H,
         depth: r,
@@ -214,16 +210,16 @@ export function layoutRows(rows: TreeNodeSpec[][]): TreeLayout {
  */
 export function layoutColumns(lanes: TreeNodeSpec[][]): TreeLayout {
   const deepest = lanes.reduce((a, l) => Math.max(a, l.length), 1);
-  const width = PAD * 2 + lanes.length * NODE_W + (lanes.length - 1) * GAP_X;
-  const height = PAD * 2 + deepest * NODE_H + (deepest - 1) * GAP_Y;
+  const width = M.pad * 2 + lanes.length * NODE_W + (lanes.length - 1) * M.gapX;
+  const height = M.pad * 2 + deepest * NODE_H + (deepest - 1) * M.gapY;
 
   const nodes: TreeNode[] = [];
   lanes.forEach((lane, c) => {
     lane.forEach((spec, i) => {
       nodes.push({
         spec,
-        x: PAD + c * (NODE_W + GAP_X),
-        y: PAD + i * (NODE_H + GAP_Y),
+        x: M.pad + c * (NODE_W + M.gapX),
+        y: M.pad + i * (NODE_H + M.gapY),
         w: NODE_W,
         h: NODE_H,
         depth: i,
@@ -283,21 +279,25 @@ export function layoutRadial(root: WebNode, all: TreeEdge[]): TreeLayout {
    * long enough that the narrowest wedge on it still fits its own node. Averaging over the
    * ring is not enough — one crowded sector would overlap while a sparse one wasted room.
    */
-  const reach = (d: number) => Math.max(...sizeAt(d)) / 2;
+  // half the diagonal, not half the longer side: two boxes on neighbouring rings meet at
+  // an angle, and the longer side alone lets a corner slip inside its neighbour
+  const reach = (d: number) => Math.hypot(...sizeAt(d)) / 2;
   const radii: number[] = [0];
   for (let d = 1; d <= maxDepth; d++) {
-    const [w] = sizeAt(d);
+    // the same diagonal argument: neighbours separated along a nearly horizontal arc have
+    // almost no vertical gap, so clearing the width alone is not enough
+    const span1 = Math.hypot(...sizeAt(d));
     let tightest = 0;
     for (const p of placed) {
       if (p.depth !== d) continue;
-      tightest = Math.max(tightest, (w + ARC_GAP) / Math.max(p.span, 1e-4));
+      tightest = Math.max(tightest, (span1 + M.arcGap) / Math.max(p.span, 1e-4));
     }
-    radii[d] = Math.max(radii[d - 1] + reach(d - 1) + reach(d) + RING_GAP, tightest);
+    radii[d] = Math.max(radii[d - 1] + reach(d - 1) + reach(d) + M.ringGap, tightest);
   }
 
   const rMax = radii[maxDepth] ?? 0;
   const [outerW, outerH] = sizeAt(maxDepth);
-  const half = rMax + Math.max(outerW, outerH) / 2 + PAD;
+  const half = rMax + Math.max(outerW, outerH) / 2 + M.pad;
   const width = half * 2;
   const height = half * 2;
 
