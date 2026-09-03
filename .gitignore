@@ -2,7 +2,6 @@
 .omc/
 .codegraph/
 .claude/settings.local.json
-.claude/skills/gstack/
 graphify-out/
 
 # Node

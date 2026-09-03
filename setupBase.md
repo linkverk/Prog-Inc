@@ -125,7 +125,6 @@ Plugin-bundled servers surface as `mcp__plugin_<plugin>_<server>__*`:
 | Event | Command | Effect |
 |---|---|---|
 | `SessionStart` | `node ~/.claude/hooks/caveman-activate.js` | injects caveman-mode instructions, level `full` |
-| `SessionStart` | `~/.claude/skills/gstack/bin/gstack-session-update` | gstack session bookkeeping |
 | `UserPromptSubmit` | `node ~/.claude/hooks/caveman-mode-tracker.js` | tracks `/caveman lite\|full\|ultra` switches |
 | `statusLine` | `node ~/.claude/hud/omc-hud.mjs` | OMC HUD status line |
 
@@ -134,20 +133,13 @@ Hook scripts live in `~/.claude/hooks/`: `caveman-activate.js`, `caveman-config.
 
 ### Project (`.claude/settings.json`, committed)
 
-All three are `PreToolUse`:
+Both are `PreToolUse`, and both call `.claude/hooks/graphify-gate.mjs` (Node, no Python):
 
-1. **`Skill` → `.claude/hooks/check-gstack.sh`** — hard gate. If `~/.claude/skills/gstack/bin`
-   is missing it returns `permissionDecision: deny`, so **every skill invocation in this repo fails**
-   until gstack is cloned. This is the single most likely "why is nothing working" cause on a fresh
-   machine.
-2. **`Bash`** — if the command contains `grep`/`rg`/`find`/`fd`/`ack`/`ag` **and**
+1. **`Bash`** — if the command contains `grep`/`rg`/`find`/`fd`/`ack`/`ag` **and**
    `graphify-out/graph.json` exists, injects "run `graphify query` first".
-3. **`Read|Glob`** — same nudge for source-file extensions outside `graphify-out/`.
+2. **`Read|Glob`** — same nudge for source-file extensions outside `graphify-out/`.
 
-⚠ Hooks 2 and 3 parse their JSON payload with `python3`. On this machine `python3` resolves to the
-Windows Store stub (`~/AppData/Local/Microsoft/WindowsApps/python3`) which exits **49** on `-c`,
-so both hooks swallow the error and emit nothing. They are currently **inert**. Use `py -3.11`
-for real Python; see [§10](#10-known-gaps--drift).
+Both are no-ops until `graphify-out/graph.json` exists; see [§10](#10-known-gaps--drift).
 
 ### Plugin-injected (not in any settings file)
 
@@ -166,17 +158,10 @@ for real Python; see [§10](#10-known-gaps--drift).
   exports, extraction-spec, add-watch, github-and-merge, transcribe). Triggered by `/graphify`.
 - **`tech-debt-audit`**
 
-### Global — `~/.claude/skills/` (58 dirs)
-Dominated by the **gstack** suite: `browse`, `scrape`, `qa`, `qa-only`, `review`, `ship`,
-`land-and-deploy`, `canary`, `benchmark`, `investigate`, `spec`, `retro`, `health`,
-`plan-ceo-review` / `plan-eng-review` / `plan-design-review` / `plan-devex-review`,
-`design-consultation` / `design-html` / `design-review` / `design-shotgun`, `ios-*`,
-`freeze` / `guard` / `unfreeze`, `careful`, `cso`, `codex`, `context-save` / `context-restore`,
-`setup-deploy`, `setup-gbrain`, `make-pdf`. Plus `graphify`, `tech-debt-audit`, `learned`,
-`omc-learned`.
-
-**gstack is gitignored** (`.gitignore:40` → `.claude/skills/gstack/`) and is *not* a plugin — it
-must be cloned separately or the Skill gate in §5 blocks everything.
+### Global — `~/.claude/skills/` (4 dirs)
+`graphify`, `tech-debt-audit`, `learned`, `omc-learned`. The gstack suite that used to live here
+(54 dirs) was removed on 2026-09-03 along with its `~/.gstack/` config and the Skill gate; nothing
+in this repo depends on it.
 
 Plugin skills (ecc, omc, caveman, claude-mem, code-modernization, figma, firecrawl,
 huggingface-skills, …) are listed by the harness at session start; they live in the plugin cache,
@@ -236,10 +221,9 @@ Configured elsewhere, listed here so the picture is complete — details stay in
 
 ## 9. What is *not* in the repo
 
-`.gitignore` excludes two pieces of the setup, so a fresh clone is incomplete:
+`.gitignore` excludes local tooling state, so a fresh clone is incomplete:
 
-- `.omc/` (`.gitignore:38`) — OMC plans, sessions, project memory, state
-- `.claude/skills/gstack/` (`.gitignore:40`) — the whole gstack skill suite
+- `.omc/` (`.gitignore:2`) — OMC plans, sessions, project memory, state
 
 Also outside the repo entirely: `~/.claude/settings.json`, `~/.claude.json`, `~/.claude/hooks/`,
 `~/.claude/hud/`, the plugin cache, and per-project auto-memory.
@@ -251,16 +235,15 @@ Also outside the repo entirely: `~/.claude/settings.json`, `~/.claude.json`, `~/
 | # | Issue | Impact | Fix |
 |---|---|---|---|
 | 1 | `graphify-out/` does not exist, though `CLAUDE.md` and two hooks assume it | graphify-first rules are dead letters | run `graphify .` to build the graph, or drop the rule |
-| 2 | `python3` is the Windows Store stub (exit 49) | both graphify PreToolUse hooks no-op silently | rewrite hooks to use `node -e` or `py -3.11` |
+| 2 | `python3` is the Windows Store stub (exit 49) | any Python-based tooling fails; the graphify hooks were moved to Node and are unaffected | use `py -3.11` when Python is needed |
 | 3 | OMC 4.13.5 installed, 5.1.0 available | missing fixes/skills | `omc update` (syncs plugin + npm + CLAUDE.md) |
-| 4 | gstack gitignored but gated as mandatory | fresh clone → every `Skill` call denied | clone per §11 before first session |
-| 5 | Global permission list is cross-project | grants unrelated to this repo stay approved here | prune, or move repo-specific entries down to `settings.local.json` |
+| 4 | Global permission list is cross-project | grants unrelated to this repo stay approved here | prune, or move repo-specific entries down to `settings.local.json` |
 
 ---
 
 ## 11. Reproduce-from-zero
 
-Order matters: marketplaces → plugins → MCP → gstack → codegraph.
+Order matters: marketplaces → plugins → MCP → codegraph.
 
 ```powershell
 # 1. Marketplaces
@@ -289,11 +272,7 @@ claude mcp add -s project caveman-shrink -- npx -y caveman-shrink
 ```
 
 ```bash
-# 4. gstack (required — the Skill hook denies everything without it)
-git clone --depth 1 https://github.com/garrytan/gstack.git ~/.claude/skills/gstack
-cd ~/.claude/skills/gstack && ./setup --team
-
-# 5. codegraph index for this repo
+# 4. codegraph index for this repo
 npm i -g codegraph   # if `codegraph` is not on PATH
 codegraph index .
 ```
@@ -307,6 +286,5 @@ Then copy the global prefs from §2 into `~/.claude/settings.json` and restart C
 ```bash
 node -e "const p=require(process.env.USERPROFILE+'/.claude/plugins/installed_plugins.json').plugins; for(const [k,v] of Object.entries(p)) console.log(k,(v.find(x=>x.scope==='user')||v[0]).version)"
 node -e "console.log(Object.keys(require(process.env.USERPROFILE+'/.claude.json').mcpServers))"
-ls ~/.claude/skills/gstack/bin && echo "gstack OK"
 codegraph status
 ```
