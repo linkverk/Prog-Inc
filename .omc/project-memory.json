@@ -9,7 +9,7 @@
     "runtime": null
   },
   "build": {
-    "buildCommand": "cd \"D:/GitHub/Prog Inc\" && SP=\"/c/Users/GEBRUI~1/AppData/Local/Temp/claude/D--GitHub-Prog-Inc/076d7123-8c7a-4049-879c-aaf50ba5cf6f/scratchpad\" && cat > \"$SP/fit-patch.mjs\" <<'PATCH'\nimport {readFileSync,writeFileSync} from 'node:fs';\nconst f='src/ui/branches.ts';\nlet t=readFileSync(f,'utf8');\nconst sub=(a,b)=>{ if(!t.includes(a)) throw new Error('NOT FOUND: '+a.slice(0,60)); t=t.replace(a,b); };\n\nsub('let builtFor = \"\";','let builtFor = \"\";\\nlet fitted = false;');\n\nsub(`export function renderBranches(): void {\n  paintChips();\n  renderHead();\n  ensureTree();`,\n`export function renderBranches(): void {\n  paintChips();\n  renderHead();\n  ensureTree();\n  // the pane is hidden at boot, so the canvas has no width to fit against until it opens\n  if (view && !fitted && $(\"treecanvas\").clientWidth > 0) {\n    fitZoom(view, $(\"treecanvas\"));\n    fitted = true;\n    paintZoom();\n  }`);\n\nsub(`  view = buildTree(host, rowsFor(selected));\n  builtFor = selected;\n  host.scrollLeft = 0;\n  host.scrollTop = 0;\n  fitZoom(view, host);\n  paintZoom();`,\n`  view = buildTree(host, rowsFor(selected));\n  builtFor = selected;\n  fitted = false;\n  host.scrollLeft = 0;\n  host.scrollTop = 0;\n  paintZoom();`);\n\nwriteFileSync(f,t,'utf8');\nconsole.log('fit-on-first-open patched');\nPATCH\nnode \"$SP/fit-patch.mjs\" && npm run build 2>&1 | tail -4 && grep -c \"treecanvas\" dist/assets/*.js && grep -c \"tnode\" dist/assets/*.css",
+    "buildCommand": "cd \"D:/GitHub/Prog Inc\" && npm run build 2>&1 | tail -15 && npm run stats 2>&1 | grep -E \"^SKILLS|^UPGRADES|levels\"",
     "testCommand": null,
     "lintCommand": null,
     "devCommand": null,
@@ -33,6 +33,12 @@
   "customNotes": [],
   "directoryMap": {},
   "hotPaths": [
+    {
+      "path": "src\\main.ts",
+      "accessCount": 10,
+      "lastAccessed": 1788461995961,
+      "type": "file"
+    },
     {
       "path": "PLAN.md",
       "accessCount": 5,
@@ -118,6 +124,12 @@
       "type": "directory"
     },
     {
+      "path": "C:\\Users\\GEBRUI~1\\AppData\\Local\\Temp\\claude\\D--GitHub-Prog-Inc\\8ab29a83-d550-4cc1-af46-4b23b8ce3908\\scratchpad",
+      "accessCount": 2,
+      "lastAccessed": 1788462219677,
+      "type": "directory"
+    },
+    {
       "path": "package.json",
       "accessCount": 1,
       "lastAccessed": 1788455505180,
@@ -160,12 +172,6 @@
       "type": "file"
     },
     {
-      "path": "src\\main.ts",
-      "accessCount": 1,
-      "lastAccessed": 1788460964721,
-      "type": "file"
-    },
-    {
       "path": "src\\styles.css",
       "accessCount": 1,
       "lastAccessed": 1788461018691,
@@ -188,6 +194,18 @@
       "accessCount": 1,
       "lastAccessed": 1788461923414,
       "type": "directory"
+    },
+    {
+      "path": "C:\\Users\\GEBRUI~1\\AppData\\Local\\Temp\\claude\\D--GitHub-Prog-Inc\\8ab29a83-d550-4cc1-af46-4b23b8ce3908\\scratchpad\\cdp.mjs",
+      "accessCount": 1,
+      "lastAccessed": 1788462146971,
+      "type": "file"
+    },
+    {
+      "path": "C:\\Users\\GEBRUI~1\\AppData\\Local\\Temp\\claude\\D--GitHub-Prog-Inc\\8ab29a83-d550-4cc1-af46-4b23b8ce3908\\scratchpad\\cdp2.mjs",
+      "accessCount": 1,
+      "lastAccessed": 1788462251357,
+      "type": "file"
     }
   ],
   "userDirectives": []

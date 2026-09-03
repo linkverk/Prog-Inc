@@ -1,7 +1,6 @@
 import "./styles.css";
 
-import { D, S, recompute, setState, tick, upgradeUnlocked, gainLoc, rankName } from "./core/engine";
-import { UPGRADES } from "./data/upgrades.generated";
+import { D, S, recompute, setState, tick, gainLoc, rankName } from "./core/engine";
 import { PICK_RANK, RANKS } from "./data/ranks";
 import { debugSession, writeCode } from "./core/actions";
 import { dueOpportunity, maybeIncident, scheduleOpportunity, takeOpportunity, type Opportunity } from "./core/events";
@@ -14,9 +13,7 @@ import { SHELL } from "./ui/shell";
 import { $, el } from "./ui/dom";
 import { closeModal, openModal } from "./ui/modal";
 import { floatText, paintStatus, pushLine, pushLog, renderBuffs, renderSignature } from "./ui/status";
-import { initSetup, refreshSetup } from "./ui/setup";
-import { initShop, renderShop } from "./ui/shop";
-import { anySkillAffordable, initBranches, renderBranches } from "./ui/branches";
+import { anyAffordable, initTree, renderTree } from "./ui/treetab";
 import {
   initPanels, offerTrack, offlineReport, openStats,
   renderAwards, renderCareer, renderPrestige, renderTrack,
@@ -33,15 +30,13 @@ setState(state);
 applyTheme();
 onLog(pushLog);
 
-type TabName = "setup" | "shop" | "branches" | "track" | "career" | "awards" | "reset";
-const TABS: TabName[] = ["setup", "shop", "branches", "track", "career", "awards", "reset"];
-let activeTab: TabName = "setup";
+type TabName = "tree" | "track" | "career" | "awards" | "reset";
+const TABS: TabName[] = ["tree", "track", "career", "awards", "reset"];
+let activeTab: TabName = "tree";
 
 function renderAll(): void {
   recompute();
-  refreshSetup();
-  renderShop();
-  renderBranches();
+  renderTree();
   renderTrack();
   renderCareer();
   renderAwards();
@@ -57,8 +52,7 @@ function setTab(name: TabName): void {
     t.setAttribute("aria-selected", String(t.dataset.tab === name));
   });
   for (const p of TABS) $(`pane-${p}`).hidden = p !== name;
-  if (name === "shop") renderShop();
-  if (name === "branches") renderBranches();
+  if (name === "tree") renderTree();
   if (name === "track") renderTrack();
   if (name === "career") renderCareer();
   if (name === "awards") renderAwards();
@@ -67,20 +61,15 @@ function setTab(name: TabName): void {
 }
 
 function refreshDots(): void {
-  const shopReady = UPGRADES.some((u) => !S.upg[u.id] && upgradeUnlocked(u) && S.money >= u.cost);
-  $("dot-shop").hidden = !shopReady || activeTab === "shop";
-  $("dot-br").hidden = !anySkillAffordable() || activeTab === "branches";
+  $("dot-tree").hidden = !anyAffordable() || activeTab === "tree";
   $("dot-trk").hidden = !(!S.track && S.rank >= PICK_RANK) || activeTab === "track";
   $("dot-rst").hidden = S.runLoc < 2e7 || activeTab === "reset";
 }
 
-initSetup(afterPurchase);
-initShop(afterPurchase);
-initBranches(afterPurchase);
+initTree(afterPurchase);
 initPanels(renderAll);
 
 function afterPurchase(): void {
-  refreshSetup();
   paintStatus();
   refreshDots();
 }
@@ -105,7 +94,7 @@ $("btn-code").addEventListener("click", (ev) => {
 $("btn-debug").addEventListener("click", () => {
   debugSession();
   paintStatus();
-  if (activeTab === "branches") renderBranches();
+  if (activeTab === "tree") renderTree();
 });
 
 $("btn-stats").addEventListener("click", (e) => {
@@ -247,7 +236,6 @@ function loop(): void {
   maybeIncident();
 
   paintStatus();
-  refreshSetup();
   refreshDots();
 }
 
@@ -286,8 +274,7 @@ setInterval(() => {
 }, 1400);
 setInterval(renderBuffs, 1000);
 setInterval(() => {
-  if (activeTab === "shop") renderShop();
-  if (activeTab === "branches") renderBranches();
+  if (activeTab === "tree") renderTree();
 }, 2500);
 setInterval(() => save(S), 10_000);
 
