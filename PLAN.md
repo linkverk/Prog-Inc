@@ -94,10 +94,11 @@ B1..B8  branch gateways ...... require G0, cost KP, open a currency faucet
   id, branch, name, desc,
   tier,            // 1..5, depth inside the branch
   req: string[],   // prerequisite skill ids (AND)
+  reqLevel,        // level each prerequisite must reach; 1 unless stated, 3 at tier 5
   kind,            // effect family — decides what the levels do
   power,           // magnitude of one level
   cost,            // cost of level 1, in branch currency
-  costGrowth,      // multiplier per level, 1.35 – 1.9
+  costGrowth,      // multiplier per level, 1.42 at tier 1 rising to 2.2 at tier 5
   maxLevel         // 3 – 12
 }
 ```
@@ -126,15 +127,24 @@ produces up to twelve distinct purchases, and the numbers stay legible in the so
 | `currency` | × this branch's own currency gain |
 | `crossCurrency` | × a **different** branch's currency gain — the reason to open several |
 
+Each branch draws on **eight kinds, all different**, which is what gives it a character:
+Craft owns the bug-and-quality family, Business owns income and discounts, Systems owns
+machines and offline. The rotation shifts by one per tier, and the magnitude of a level
+varies with position (×0.85 to ×1.3), so no two skills in one branch and tier read alike.
+
 ### Distribution per branch (33 upgradable + 3 sub-gateways)
 
 | tier | count | unlocked by | level cap | cost of level 1 |
 |---|---|---|---|---|
-| 1 | 8 | branch gateway | 12 | 5 – 25 |
-| 2 | 8 | sub-gateway S1 | 10 | 60 – 300 |
-| 3 | 8 | sub-gateway S2 | 8 | 900 – 4 000 |
-| 4 | 6 | sub-gateway S3 | 6 | 12 000 – 60 000 |
-| 5 | 3 | four tier-4 skills at level ≥ 3 | 3 | 250 000+ |
+| 1 | 8 | branch gateway | 12 | 8 – 27 |
+| 2 | 8 | sub-gateway S1 | 10 | 95 – 321 |
+| 3 | 8 | sub-gateway S2 | 8 | 1 500 – 5 070 |
+| 4 | 6 | sub-gateway S3 | 6 | 24 000 – 64 800 |
+| 5 | 3 | four tier-4 skills at level ≥ 3 | 3 | 420 000 – 900 480 |
+
+Costs fan out across a tier — each position costs 34% more than the last, and a skill whose
+effect is its own branch currency costs 1.6× on top, so the compounding ones are never the
+cheapest thing on screen. Sub-path gateways cost 140 / 3 200 / 90 000 of the branch currency.
 
 Total purchasable *levels* across all 300 skills: **2 316** (`npm run gen` reports it).
 

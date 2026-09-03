@@ -93,6 +93,8 @@ export interface Skill {
   tier: number;
   /** prerequisite skill ids, all required */
   req: string[];
+  /** minimum level each prerequisite must be at; 1 unless stated */
+  reqLevel?: number;
   /** true for path-opening skills: one purchase, never upgradable */
   gateway?: boolean;
   /** which pile pays for it */

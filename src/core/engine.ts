@@ -86,7 +86,8 @@ export function rankName(i: number): string {
 
 /** All prerequisites owned? */
 export function skillUnlocked(s: Skill): boolean {
-  return s.req.every((r) => (S.skills[r] ?? 0) > 0);
+  const need = s.reqLevel ?? 1;
+  return s.req.every((r) => (S.skills[r] ?? 0) >= need);
 }
 
 export function upgradeUnlocked(u: (typeof UPGRADES)[number]): boolean {

@@ -117,9 +117,10 @@ function skillCard(sk: Skill): string {
       : "one-time"
     : `${owned} / ${sk.maxLevel}`;
 
+  const needLevel = sk.reqLevel ?? 1;
   const missing = sk.req
-    .filter((r) => !(S.skills[r] ?? 0))
-    .map((r) => SKILL_BY_ID[r]?.name ?? r);
+    .filter((r) => (S.skills[r] ?? 0) < needLevel)
+    .map((r) => (SKILL_BY_ID[r]?.name ?? r) + (needLevel > 1 ? ` (level ${needLevel})` : ""));
 
   const bar = sk.gateway
     ? ""
@@ -139,7 +140,7 @@ function skillCard(sk: Skill): string {
       `<button data-buy="${sk.id}" data-n="1"${can ? "" : " disabled"}>${sk.gateway ? "Open" : "+1"}</button>` +
       (sk.gateway
         ? ""
-        : `<button data-buy="${sk.id}" data-n="10"${ten > 1 ? "" : " disabled"}>+${Math.max(ten, 10)}</button>` +
+        : `<button data-buy="${sk.id}" data-n="10"${ten > 1 ? "" : " disabled"}>+10</button>` +
           `<button data-buy="${sk.id}" data-n="${sk.maxLevel}"${all > 1 ? "" : " disabled"}>Max</button>`) +
       `</span></div>`;
   }

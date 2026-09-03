@@ -35,6 +35,11 @@ const TIER_SHAPE = {
   5: [420000, 2.2, 3],
 };
 
+/** per-position multiplier, so two skills of one kind never read identically */
+const JITTER = [0.85, 1, 1.15, 1.3];
+
+const round6 = (x) => Math.round(x * 1e6) / 1e6;
+
 /** how strong one level of each kind is, by tier */
 const POWER = {
   output: [0.06, 0.09, 0.13, 0.19, 0.32],
@@ -67,7 +72,7 @@ const BRANCH_CONTENT = {
       ["Open: Advanced Structures", "The data structures that make hard problems easy."],
       ["Open: Theory", "Where the field runs out of known answers."],
     ],
-    kinds: ["clickPower", "output", "clickPct", "currency", "clickPower", "output", "crossCurrency", "clickPower"],
+    kinds: ["clickPower", "output", "clickPct", "currency", "knowledge", "debugPower", "crossCurrency", "cheaper"],
     cross: "research",
     t1: ["Loops", "Recursion", "Binary Search", "Hash Maps", "Sorting Networks", "Two Pointers", "Sliding Window", "Amortised Analysis"],
     t2: ["Dynamic Programming", "Greedy Proofs", "Graph Traversal", "Union-Find", "Heaps & Priority Queues", "Bit Manipulation", "Memoisation", "Divide & Conquer"],
@@ -82,7 +87,7 @@ const BRANCH_CONTENT = {
       ["Open: Distribution", "Many machines pretending to be one."],
       ["Open: Bare Metal", "Below the runtime, below the kernel."],
     ],
-    kinds: ["genGroup", "output", "offline", "currency", "genGroup", "output", "crossCurrency", "genGroup"],
+    kinds: ["genGroup", "output", "offline", "currency", "cheaper", "autoClean", "crossCurrency", "bugSoften"],
     cross: "data",
     gens: MACHINES,
     t1: ["Bash Scripting", "Cron Jobs", "Process Supervision", "File Descriptors", "Pipes & Redirection", "Service Units", "Log Rotation", "Shell Functions"],
@@ -98,7 +103,7 @@ const BRANCH_CONTENT = {
       ["Open: Review Culture", "Two pairs of eyes, one standard."],
       ["Open: Verification", "Proof instead of hope."],
     ],
-    kinds: ["bugSlow", "debugPower", "bugSoften", "currency", "autoClean", "output", "crossCurrency", "bugSlow"],
+    kinds: ["bugSlow", "debugPower", "bugSoften", "currency", "autoClean", "output", "crossCurrency", "knowledge"],
     cross: "community",
     t1: ["Naming Things", "Small Functions", "Guard Clauses", "Consistent Formatting", "Meaningful Commits", "Pull Request Hygiene", "Readable Diffs", "Dead Code Removal"],
     t2: ["Unit Testing", "Property Testing", "Golden Files", "Test Fixtures", "Mutation Testing", "Coverage Gates", "Flake Hunting", "Fast Feedback"],
@@ -113,7 +118,7 @@ const BRANCH_CONTENT = {
       ["Open: Products", "Stop trading hours. Start shipping units."],
       ["Open: Ownership", "The part of the company that is yours."],
     ],
-    kinds: ["income", "cheaper", "output", "currency", "income", "cheaper", "crossCurrency", "income"],
+    kinds: ["income", "cheaper", "output", "currency", "luck", "knowledge", "crossCurrency", "offline"],
     cross: "algorithms",
     t1: ["Time Tracking", "Invoicing", "Scope Control", "Honest Estimates", "Client Communication", "Contract Reading", "Rate Card", "Retainer Terms"],
     t2: ["Negotiation", "Positioning", "Case Studies", "Referral Network", "Value Pricing", "Upselling", "Renewal Motion", "Payment Terms"],
@@ -128,7 +133,7 @@ const BRANCH_CONTENT = {
       ["Open: Streaming", "Answering before the question is finished."],
       ["Open: Scale", "When the table does not fit anywhere."],
     ],
-    kinds: ["output", "knowledge", "genGroup", "currency", "output", "knowledge", "crossCurrency", "output"],
+    kinds: ["output", "knowledge", "genGroup", "currency", "clickPct", "cheaper", "crossCurrency", "luck"],
     cross: "systems",
     gens: PIPELINE,
     t1: ["CSV Wrangling", "SQL Basics", "Indexing", "Query Plans", "Joins That Work", "Aggregation", "Window Functions", "Type Discipline"],
@@ -144,7 +149,7 @@ const BRANCH_CONTENT = {
       ["Open: Exploitation", "From a crash to a shell."],
       ["Open: Research", "Finding what nobody has found yet."],
     ],
-    kinds: ["bugSlow", "output", "income", "currency", "bugSlow", "output", "crossCurrency", "income"],
+    kinds: ["bugSlow", "output", "income", "currency", "debugPower", "knowledge", "crossCurrency", "luck"],
     cross: "craft",
     /* security wants MORE defects: negative bugSlow power raises the rate on purpose */
     invertBugs: true,
@@ -161,7 +166,7 @@ const BRANCH_CONTENT = {
       ["Open: Stewardship", "Looking after something bigger than your commits."],
       ["Open: Legacy", "What keeps going after you stop."],
     ],
-    kinds: ["luck", "knowledge", "genGroup", "currency", "output", "luck", "crossCurrency", "knowledge"],
+    kinds: ["luck", "knowledge", "genGroup", "currency", "output", "income", "crossCurrency", "autoClean"],
     cross: "business",
     gens: PEOPLE,
     t1: ["Answering Questions", "Writing Issues Well", "Good First Issues", "Changelogs", "Release Notes", "Code Of Conduct", "Triage Rota", "Saying Thank You"],
@@ -174,10 +179,10 @@ const BRANCH_CONTENT = {
     gate: ["Research Practice", "Read, reproduce, question. Then write something nobody has."],
     subs: [
       ["Open: Method", "Doing it so someone else could do it again."],
-      ["Open: Theory", "Results that hold without an experiment."],
-      ["Open: Legacy", "Work measured in decades."],
+      ["Open: Formalism", "Results that hold without an experiment."],
+      ["Open: The Long Record", "Work measured in decades."],
     ],
-    kinds: ["knowledge", "output", "currency", "crossCurrency", "knowledge", "clickPct", "crossCurrency", "output"],
+    kinds: ["knowledge", "output", "currency", "crossCurrency", "clickPct", "offline", "luck", "cheaper"],
     cross: "algorithms",
     t1: ["Reading Papers", "Reproducing Results", "Literature Reviews", "Structured Notes", "Hypothesis Framing", "Honest Baselines", "Ablations", "Experiment Logs"],
     t2: ["Novel Benchmarks", "Peer Review", "Preprints", "Collaboration", "Grant Writing", "Reproducible Artifacts", "Negative Results", "Survey Papers"],
@@ -304,10 +309,12 @@ function buildSkills() {
       const tier = ti + 1;
       const [baseCost, growth, maxLevel] = TIER_SHAPE[tier];
       names.forEach((name, ni) => {
-        let kind = c.kinds[ni % c.kinds.length];
+        // the rotation shifts by tier, so a branch reads as a progression rather than
+        // the same eight cards four times over
+        let kind = c.kinds[(ni + ti) % c.kinds.length];
         if (tier === 5) kind = ni === 0 ? "output" : ni === 1 ? "currency" : "crossCurrency";
-        let power = POWER[kind][ti];
-        if (kind === "bugSlow" && c.invertBugs) power = -power * 1.4;
+        let power = round6(POWER[kind][ti] * JITTER[ni % JITTER.length]);
+        if (kind === "bugSlow" && c.invertBugs) power = round6(-power * 1.4);
 
         const gens = kind === "genGroup" ? c.gens ?? MACHINES : undefined;
         const target = kind === "currency" ? b : kind === "crossCurrency" ? c.cross : undefined;
@@ -325,7 +332,7 @@ function buildSkills() {
 
         let req;
         if (tier === 1) req = [branchGateId(b)];
-        else if (tier === 5) req = [t4ids[(ni * 2) % t4ids.length], t4ids[(ni * 2 + 1) % t4ids.length]];
+        else if (tier === 5) req = [0, 1, 2, 3].map((k) => t4ids[(ni * 2 + k) % t4ids.length]);
         else req = [subIds[tier - 2]];
 
         out.push({
@@ -335,6 +342,7 @@ function buildSkills() {
           kind, power,
           ...(gens ? { gens } : {}),
           ...(target ? { target } : {}),
+          ...(tier === 5 ? { reqLevel: 3 } : {}),
         });
       });
     });
@@ -607,7 +615,7 @@ const levels = skills.reduce((a, s) => a + s.maxLevel, 0);
 console.log(`skills:   ${skills.length}  (${gateways} gateways, ${skills.length - gateways} upgradable, ${levels} total levels)`);
 console.log(`upgrades: ${upgrades.length}`);
 
-/* integrity: every prerequisite must exist, every id unique */
+/* integrity: ids unique, prerequisites real, and the catalogue shaped as PLAN.md says */
 const ids = new Set();
 for (const s of skills) {
   if (ids.has(s.id)) throw new Error(`duplicate skill id: ${s.id}`);
@@ -616,6 +624,42 @@ for (const s of skills) {
 for (const s of skills) {
   for (const r of s.req) if (!ids.has(r)) throw new Error(`${s.id} requires missing ${r}`);
 }
+
+const names = new Set();
+for (const s of skills) {
+  if (names.has(s.name)) throw new Error(`duplicate skill name: ${s.name}`);
+  names.add(s.name);
+}
+
+/* two skills in one branch and tier must not read identically */
+const blurbs = new Map();
+for (const s of skills) {
+  const k = `${s.branch}|${s.tier}|${s.desc}`;
+  if (blurbs.has(k)) throw new Error(`${s.id} reads exactly like ${blurbs.get(k)}`);
+  blurbs.set(k, s.id);
+}
+
+for (const s of skills) {
+  if (s.gateway && (s.maxLevel !== 1 || s.costGrowth !== 1)) {
+    throw new Error(`gateway ${s.id} must be a single purchase`);
+  }
+  if (!s.gateway && (s.maxLevel < 3 || s.maxLevel > 12)) {
+    throw new Error(`${s.id} has ${s.maxLevel} levels, expected 3..12`);
+  }
+  if ((s.kind === "currency" || s.kind === "crossCurrency") && s.target && !BRANCH_CONTENT[s.target]) {
+    throw new Error(`${s.id} targets unknown branch ${s.target}`);
+  }
+}
+
+for (const b of BRANCH_ORDER) {
+  const mine = skills.filter((s) => s.branch === b);
+  const gates = mine.filter((s) => s.gateway);
+  if (gates.length !== 4) throw new Error(`${b} has ${gates.length} gateways, expected 4`);
+  if (mine.length - gates.length !== 33) {
+    throw new Error(`${b} has ${mine.length - gates.length} upgradable skills, expected 33`);
+  }
+}
+
 const uids = new Set();
 for (const u of upgrades) {
   if (uids.has(u.id)) throw new Error(`duplicate upgrade id: ${u.id}`);

@@ -9,7 +9,7 @@
     "runtime": null
   },
   "build": {
-    "buildCommand": "cd \"d:/GitHub/Prog Inc\" && cat > CLAUDE.md <<'EOF'\n# CLAUDE.md — инструкции по работе с Zero to Ten-X\n\nПроект: инкрементальная игра про карьеру программиста (300 навыков в 8 ветках, 8 веточных\nвалют + 4 глобальных, 36 одноразовых gateway-навыков, 450 магазинных апгрейдов,\n7 специализаций, prestige через смену работы).\nСтек: TypeScript 5.6 + Vite 5, ESM, **без runtime-зависимостей**. Сборка — `npm run build`.\n\nЯзык кода, комментариев, UI и документации — английский (британский: «specialisation»,\nкак в PLAN.md). Общение с пользователем — русский.\n\n## Правила кода\n\n- Строгий TypeScript: `strict`, `noUnusedLocals`, `noUnusedParameters`,\n  `noFallthroughCasesInSwitch`, `verbatimModuleSyntax`, `isolatedModules` (см. `tsconfig.json`)\n- Типы импортируются как `import type { ... }` — иначе `verbatimModuleSyntax` даст ошибку\n- Runtime-зависимости не добавляются. Нужна библиотека — сначала обоснование, потом обсуждение\n- Слои односторонние, нарушать нельзя:\n  - `src/core/` — правила игры. **DOM здесь запрещён**\n  - `src/data/` — контент, почти без логики\n  - `src/ui/` — рендер. Читает `core`, но никогда не мутирует его состояние напрямую\n- Файлы `src/data/*.generated.ts` руками не правятся. Контент меняется в\n  `scripts/gen-content.mjs`, затем `npm run gen`. Сгенерированное коммитится намеренно —\n  чистый checkout должен запускаться без предварительной сборки\n- Без emoji в коде. Игровые символы валют (`◇ ∞ ✓ ¤ ∿ ⌖ ♥ ∴ ★`) — не emoji, они часть контента\n- Комментарии — только когда добавляют смысл. Пересказ кода не нужен\n- Формат save в `localStorage` — `zero10x.save.v3`. Смена формы состояния требует бампа\n  версии и миграции в `src/core/state.ts`\n\n## Организация md-файлов\n\nСписки задач в этом файле НЕ ведутся. Роли файлов:\n\n- **[PLAN.md](PLAN.md)** — спецификация v2, которую реализует код. Источник намерения:\n  «if code and this file disagree, this file is the intent and the code is the bug».\n  Это НЕ список задач и не чеклист\n- **[TASKS.md](TASKS.md)** — append-only журнал выполненного.\n  Формат записи: `- дата — задача — коммит`. Записи не редактируются и не удаляются\n- **[README.md](README.md)** — пользовательская документация. При изменении скриптов,\n  раскладки `src/` или чисел из `npm run stats` — синхронизировать\n- **[wiki/](wiki/)** — база знаний по дизайну игры, отдельный Obsidian-vault со своей\n  схемой в [wiki/CLAUDE.md](wiki/CLAUDE.md). Правила ведения wiki описаны там, здесь\n  не дублируются. `wiki/raw/` — слой человека, неизменяемый; агент туда не пишет\n\n### Workflow задачи\n\n1. Понять, что задача меняет: правила (`src/core/`), контент (`scripts/gen-content.mjs`),\n   рендер (`src/ui/`) или спеку (`PLAN.md`). Если меняется поведение — сначала PLAN.md\n2. Реализовать. Контент — только через генератор, затем `npm run gen`\n3. Прогнать проверки: `npm run typecheck`, при изменении контента ещё `npm run stats`\n   и сверить числа с README.md и wiki\n4. Обновить затронутые wiki-страницы, если изменились числа или механики\n5. Добавить запись в TASKS.md с датой и хешем коммита\n6. Этот файл обновляется только когда меняются конвенции, а не по каждой задаче\n\n## Проверки перед коммитом\n\n```bash\nnpm run typecheck     # tsc --noEmit, обязательно\nnpm run gen           # если правился scripts/gen-content.mjs\nnpm run stats         # сверить SKILLS/UPGRADES с README.md и wiki\nnpm run build         # gen + typecheck + vite build, перед релизным коммитом\n```\n\nЧисла из `npm run stats` — единственный источник правды по количеству контента.\nЛюбое число в README.md, PLAN.md или wiki, не совпадающее с выводом `stats`, — дрейф,\nего надо чинить, а не переписывать вывод.\nEOF\ncat > TASKS.md <<'EOF'\n# TASKS — журнал выполненного\n\nAppend-only. Новые записи добавляются снизу. Формат: `- дата — задача — коммит`.\nЗаписи не редактируются и не удаляются.\n\n- 2026-09-03 — wiki оформлена как Obsidian-vault (.obsidian: graph/core-plugins/app/appearance) — pending\n- 2026-09-03 — создан корневой CLAUDE.md и этот журнал — pending\nEOF\nwc -l CLAUDE.md TASKS.md && node -e \"console.log('ok')\"",
+    "buildCommand": "cd \"D:/GitHub/Prog Inc\" && npm run build >/dev/null 2>&1 && npx vite preview --port 4173 --strictPort",
     "testCommand": null,
     "lintCommand": null,
     "devCommand": null,
@@ -35,8 +35,8 @@
   "hotPaths": [
     {
       "path": "PLAN.md",
-      "accessCount": 3,
-      "lastAccessed": 1788455707157,
+      "accessCount": 4,
+      "lastAccessed": 1788458146733,
       "type": "file"
     },
     {
@@ -55,6 +55,72 @@
       "path": "tsconfig.json",
       "accessCount": 1,
       "lastAccessed": 1788455525314,
+      "type": "file"
+    },
+    {
+      "path": "src\\core\\types.ts",
+      "accessCount": 1,
+      "lastAccessed": 1788458164171,
+      "type": "file"
+    },
+    {
+      "path": "scripts\\gen-content.mjs",
+      "accessCount": 1,
+      "lastAccessed": 1788458173649,
+      "type": "file"
+    },
+    {
+      "path": "src\\core\\effects.ts",
+      "accessCount": 1,
+      "lastAccessed": 1788458180948,
+      "type": "file"
+    },
+    {
+      "path": "src\\core\\actions.ts",
+      "accessCount": 1,
+      "lastAccessed": 1788458181432,
+      "type": "file"
+    },
+    {
+      "path": "src\\ui\\branches.ts",
+      "accessCount": 1,
+      "lastAccessed": 1788458191121,
+      "type": "file"
+    },
+    {
+      "path": "src\\core\\engine.ts",
+      "accessCount": 1,
+      "lastAccessed": 1788458199864,
+      "type": "file"
+    },
+    {
+      "path": "src\\data\\branches.ts",
+      "accessCount": 1,
+      "lastAccessed": 1788458200061,
+      "type": "file"
+    },
+    {
+      "path": "src\\core\\state.ts",
+      "accessCount": 1,
+      "lastAccessed": 1788458213780,
+      "type": "file"
+    },
+    {
+      "path": "C:\\Users\\Gebruiker\\.claude\\plans\\enumerated-discovering-scone.md",
+      "accessCount": 1,
+      "lastAccessed": 1788458448256,
+      "type": "file"
+    },
+    {
+      "path": "src\\ui\\shell.ts",
+      "accessCount": 1,
+      "lastAccessed": 1788458952666,
+      "type": "file"
+    },
+    {
+      "path": "src\\ui\\dom.ts",
+      "accessCount": 1,
+      "lastAccessed": 1788458952726,
       "type": "file"
     }
   ],

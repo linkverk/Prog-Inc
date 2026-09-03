@@ -13,3 +13,12 @@ Schema mandates `index.md` and `log.md`; neither existed. Created both, back-fil
 2026-09-03 ingest from the pages on disk. Open findings: `wiki/raw/` empty; drift policy
 undecided; four concepts referenced across pages with no page of their own (prestige loop,
 rank ladder, shop upgrades, generator families).
+
+## [2026-09-03] lint | spec drift in the skill tree, three fixes
+Tier-5 unlock enforced at last: `Skill.reqLevel` + `skillUnlocked` now require four tier-4
+skills at level 3, as [[gateway-rule]] already claimed. Every branch given eight distinct
+effect kinds with a tier-shifted rotation and per-position power jitter, removing 138
+duplicate skill descriptions (170 -> 238 unique). Two colliding gateway names renamed in
+Research. `npm run gen` gained integrity checks for duplicate names, duplicate
+branch+tier descriptions, gateway shape and per-branch composition. Counts unchanged:
+300 / 36 / 264 / 2 316 / 450.

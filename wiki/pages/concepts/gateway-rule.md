@@ -3,7 +3,7 @@ type: concept
 id: gateway-rule
 updated: 2026-09-03
 sources: [plan-md]
-code: [scripts/gen-content.mjs, src/data/skills.generated.ts, src/core/actions.ts]
+code: [scripts/gen-content.mjs, src/data/skills.generated.ts, src/core/actions.ts, src/core/engine.ts]
 ---
 
 # The gateway rule
@@ -51,6 +51,12 @@ payload is access.
 | 3 | 8 | sub-gateway S2 | 8 |
 | 4 | 6 | sub-gateway S3 | 6 |
 | 5 | 3 | four tier-4 skills at level 3+ | 3 |
+
+The tier-5 gate is the only prerequisite in the game with a level threshold. It is carried
+by `reqLevel: 3` on the skill row and enforced in `skillUnlocked` (`src/core/engine.ts:88`),
+which compares each prerequisite against `reqLevel` rather than merely owning it. Until
+2026-09-03 the generator emitted two prerequisites at any level and this page was ahead of
+the code; the code was corrected to the spec, not the other way round.
 
 Per branch: 8x12 + 8x10 + 8x8 + 6x6 + 3x3 = 289 levels. x8 branches = 2 312, plus the
 4 global gateways = **2 316**, which is what `npm run gen` prints.
