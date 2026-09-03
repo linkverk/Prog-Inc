@@ -46,6 +46,18 @@
       "type": "file"
     },
     {
+      "path": "C:\\Users\\Gebruiker\\.claude\\plans\\enumerated-discovering-scone.md",
+      "accessCount": 2,
+      "lastAccessed": 1788459289488,
+      "type": "file"
+    },
+    {
+      "path": "src\\ui\\branches.ts",
+      "accessCount": 2,
+      "lastAccessed": 1788459563663,
+      "type": "file"
+    },
+    {
       "path": "package.json",
       "accessCount": 1,
       "lastAccessed": 1788455505180,
@@ -82,12 +94,6 @@
       "type": "file"
     },
     {
-      "path": "src\\ui\\branches.ts",
-      "accessCount": 1,
-      "lastAccessed": 1788458191121,
-      "type": "file"
-    },
-    {
       "path": "src\\core\\engine.ts",
       "accessCount": 1,
       "lastAccessed": 1788458199864,
@@ -103,12 +109,6 @@
       "path": "src\\core\\state.ts",
       "accessCount": 1,
       "lastAccessed": 1788458213780,
-      "type": "file"
-    },
-    {
-      "path": "C:\\Users\\Gebruiker\\.claude\\plans\\enumerated-discovering-scone.md",
-      "accessCount": 1,
-      "lastAccessed": 1788458448256,
       "type": "file"
     },
     {
