@@ -30,3 +30,30 @@ owns selection plus a detail panel with the buy buttons. Foundation is the map: 
 branch gateways, g1/g2/g3. Build and paint are separate so the tab's 2.5s refresh cannot eat
 the zoom, scroll or selected node. Layout verified: 37 nodes / 45 edges per branch, 12 / 16
 on the map, no overlaps. Content counts untouched.
+
+## [2026-09-03] ingest | Setup and Upgrades folded into one Tree tab
+Three tabs bought things three different ways and the links between them were invisible.
+Now one **Tree** tab holds all 762 nodes — 300 skills, 450 upgrades, 12 generators — as one
+graph, cut into layers by a rail: Setup (108), Foundation (12), each branch (45), Upgrades
+(248, 254 with a specialisation). `src/ui/tree.ts` was stripped of every game import and is
+now a generic renderer taking node specs plus a status function; `src/ui/treemodel.ts` holds
+what a node *is* (layers, specs, live status, buy dispatch) and `src/ui/treetab.ts` the tab
+itself. `setup.ts` and `shop.ts` deleted, `branches.ts` became `treetab.ts`. Search now spans
+every layer, with the old shop filters as a highlight lens. Verified headless over CDP: node
+and edge counts per layer, the layer doors, ×1/×10/Max on tools, a gateway purchase, and
+zoom / scroll / selection surviving the 2.5s repaint. Content counts untouched: 300 / 450.
+
+## [2026-09-03] ingest | the tree became a web
+Half the game's connections existed only as prose — `reqRank` on 202 upgrades, `reqTrack` on
+42, `crossCurrency.target` on 40 skills, `gens[]` on 10 — because a layer could only draw
+edges inside itself. The tab now defaults to a radial map of all **794 nodes** built by the
+new `src/ui/treegraph.ts`: you at the centre, folds for Setup / Upgrades / Career /
+Foundation, the branches beyond, and a new `anchor` node kind for ranks, specialisations and
+the two taps. The hierarchy is derived from `req[0]`, so nothing is authored twice; every
+other link becomes an arc bowed towards the centre, in five switchable families (requires 80,
+career 202, affects 67, currency 40, fight 2). `Branch.rivals` was added to
+`src/data/branches.ts` so the Craft/Security antagonism ([[faucet-antagonism]]) is data, not
+a UI special case. The layered view survives behind a Web/Layers switch. Two bugs found and
+fixed by the headless pass: the layer cache was clearing the shared spec registry (anchors
+vanished from `specById`), and ring radii ignored the neighbouring rings' node boxes (eight
+overlapping pairs at the centre — now zero). Content counts untouched: 300 / 450.

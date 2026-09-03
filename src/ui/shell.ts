@@ -100,10 +100,15 @@ export const SHELL = `
           <div class="treecol">
             <div id="layerhead"></div>
             <div class="zoombar">
+              <span class="modeswitch" id="tree-mode-switch">
+                <button class="minibtn" data-mode="web">Web</button>
+                <button class="minibtn" data-mode="layers">Layers</button>
+              </span>
               <button class="minibtn" id="zoom-out" title="Zoom out" aria-label="Zoom out">&minus;</button>
               <button class="minibtn" id="zoom-in" title="Zoom in" aria-label="Zoom in">+</button>
               <button class="minibtn" id="zoom-fit">Fit</button>
               <span class="zoomval num" id="zoom-val"></span>
+              <span class="legend" id="tree-fams"></span>
             </div>
             <div class="treecanvas" id="treecanvas"></div>
             <div class="treedetail" id="treedetail"></div>

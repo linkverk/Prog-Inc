@@ -141,10 +141,61 @@ the requirements that already live in the data — `Skill.req`, `Upgrade.reqGen`
 that a generator upgrade wants 25 of that generator is a line on the canvas, not a
 sentence in a tooltip.
 
-762 nodes do not fit on one canvas, so the tree is cut into **layers** and a rail on the
-left picks one. Layers are not categories bolted on top — each one is a connected region
-of the same graph, and the edge between two layers is a node you click to walk through
-(a branch gateway on Foundation opens that branch's layer).
+The tab draws that graph two ways, switched by a control beside the zoom buttons.
+
+#### Web — the radial map
+
+The default. One canvas, you at the centre, the game fanning out around you in rings.
+A node with children carries a chevron: the chevron folds its sector away, the body of the
+node selects it. Only the centre and the four first-ring hubs are open on a fresh game —
+about fifteen nodes — and the map grows as you open what you care about.
+
+```
+YOU (main.py, your click)
+├─ Setup ............ 12 tools, each with its eight upgrade tiers          108
+├─ Upgrades ......... output · income · knowledge ladders                 160
+│   ├─ Manual lines (anchor) → the 40 click upgrades
+│   └─ Bugs squashed (anchor) → the 48 quality upgrades
+├─ Career ........... 16 ranks as a spine, 7 specialisations               65
+└─ Foundation (g0) .. g1 · g2 · g3
+    └─ the 8 branch gateways — a branch hub *is* its gateway
+        └─ 3 sub-gateways, tiers 1–5, the branch's 8 money upgrades        45 each
+```
+
+Ranks, specialisations and the two taps (lines typed by hand, bugs squashed) are a node
+kind of their own: **anchors**. Nothing buys them; they exist so that "needs rank 7" is a
+line you can follow instead of a sentence you have to trust.
+
+Every requirement in the data becomes an edge, and edges come in families you can switch
+on and off. Anything that is not a parent–child link is drawn as an arc bowed towards the
+centre — bundled, so forty cross-branch links read as a few strands rather than felt.
+
+| family | what it joins | count | on by default |
+|---|---|---|---|
+| `tree` | parent to child in the hierarchy above | 793 | always |
+| `requires` | `Skill.req` that is not already a parent link | 80 | yes |
+| `career` | rank → the upgrades it gates (`reqRank`) | 202 | no |
+| `affects` | skill → the tools it multiplies (`gens[]`), `cheaper` skills → Setup | 67 | no |
+| `currency` | `crossCurrency.target` → the other branch's hub | 40 | yes |
+| `fight` | Craft ↔ Security, the two branches fighting over one tap | 2 | yes |
+
+794 nodes in total: the 762 you can buy, plus the centre, six folds, sixteen ranks, seven
+specialisations and the two taps. `reqTrack` and `reqClicks`/`reqBugsKilled` need no family
+of their own — those upgrades already hang under their specialisation or their tap.
+
+Whatever the switches say, selecting a node lights every edge it owns.
+
+Two links deliberately go undrawn: the `fx.gens` of the 96 generator upgrades and the
+`fx.cur` of the 64 branch upgrades. In both the effect edge would land on the node that is
+already the parent, so drawing it would double the line and say nothing.
+
+#### Layers — the flat view
+
+762 nodes fanned out at once is a map, not a shop, so the second mode keeps the graph cut
+into **layers** with a rail on the left. Layers are not categories bolted on top — each is
+a connected region of the same graph, and the edge between two layers is a node you click
+to walk through (a branch gateway on Foundation opens that branch's layer). Buying eight
+tool tiers in a row is faster in a grid than in a fan; that is what this mode is for.
 
 | layer | nodes | canvas shape |
 |---|---|---|
@@ -242,9 +293,10 @@ zero-to-ten-x/
    │  └─ upgrades.generated.ts   ← 450 upgrades
    └─ ui/
       ├─ dom.ts  shell.ts  modal.ts  status.ts
-      ├─ tree.ts              generic canvas: layout, edges, nodes, zoom — no game rules
+      ├─ tree.ts              generic canvas: layouts, edges, nodes, zoom — no game rules
       ├─ treemodel.ts         what a node *is*: layers, specs, live status, buy dispatch
-      ├─ treetab.ts           the Tree tab: rail, head, canvas, search, detail panel
+      ├─ treegraph.ts         the whole game as one graph: hierarchy, edge families, anchors
+      ├─ treetab.ts           the Tree tab: web/layers, rail, canvas, search, detail panel
       └─ panels.ts            career, awards, track, prestige, stats, offline report
 ```
 

@@ -32,6 +32,7 @@ export const BRANCHES: Branch[] = [
     blurb: "Quality as a strategy. Fewer bugs, softer bites, faster cleanup.",
     faucet: "Earned for every bug closed, by hand or automatically.",
     gateCost: 90,
+    rivals: ["security"],
   },
   {
     id: "business",
@@ -59,6 +60,7 @@ export const BRANCHES: Branch[] = [
     blurb: "Every defect is inventory. The opposite bet to Craft.",
     faucet: "Earned for every bug that appears — the tap Craft is trying to close.",
     gateCost: 320,
+    rivals: ["craft"],
   },
   {
     id: "community",

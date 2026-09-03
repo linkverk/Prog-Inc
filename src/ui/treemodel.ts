@@ -23,7 +23,8 @@ import { BRANCHES, BRANCH_BY_ID, BRANCH_IDS } from "../data/branches";
 import { fmt, money } from "../core/format";
 
 export type LayerId = "setup" | "global" | BranchId | "upgrades";
-export type NodeKind = "skill" | "gen" | "upgrade";
+/** `anchor` is context, not merchandise: a rank, a specialisation, a tap you fill by playing. */
+export type NodeKind = "skill" | "gen" | "upgrade" | "anchor";
 
 export interface NodeSpec extends TreeNodeSpec {
   kind: NodeKind;
@@ -37,6 +38,8 @@ export interface NodeSpec extends TreeNodeSpec {
   tierLabel: string;
   /** clicking this node walks into another layer instead of selecting it */
   jump?: LayerId;
+  /** anchors and hubs report their own state — the model cannot know what "2/45" means */
+  live?: () => { label: string; reached: boolean; fill: number };
 }
 
 export interface Layer {
@@ -81,7 +84,7 @@ const upId = (id: string) => `up:${id}`;
  *  Specs
  * ---------------------------------------------------------------- */
 
-function skillSpec(sk: Skill, jump?: LayerId): NodeSpec {
+export function skillSpec(sk: Skill, jump?: LayerId): NodeSpec {
   return {
     id: skId(sk.id),
     key: sk.id,
@@ -98,7 +101,7 @@ function skillSpec(sk: Skill, jump?: LayerId): NodeSpec {
   };
 }
 
-function upgradeSpec(u: Upgrade, req: string[], reqLevel = 1): NodeSpec {
+export function upgradeSpec(u: Upgrade, req: string[], reqLevel = 1): NodeSpec {
   return {
     id: upId(u.id),
     key: u.id,
@@ -114,7 +117,7 @@ function upgradeSpec(u: Upgrade, req: string[], reqLevel = 1): NodeSpec {
   };
 }
 
-function genSpec(gid: string): NodeSpec {
+export function genSpec(gid: string): NodeSpec {
   const g = GEN_BY_ID[gid];
   return {
     id: genId(gid),
@@ -129,6 +132,32 @@ function genSpec(gid: string): NodeSpec {
     gateway: false,
     tierLabel: "Tool",
   };
+}
+
+/**
+ * A rank, a specialisation or a tap you fill by playing. Nothing buys these; they exist so
+ * that "needs rank 7" is a line you can follow rather than a sentence you have to trust.
+ */
+export function anchorSpec(key: string, name: string, desc: string, tierLabel: string): NodeSpec {
+  return {
+    id: `an:${key}`,
+    key,
+    kind: "anchor",
+    name,
+    desc,
+    req: [],
+    reqLevel: 1,
+    flavour: "anchor",
+    maxLevel: 1,
+    gateway: false,
+    tierLabel,
+  };
+}
+
+/** Put a spec in the registry so `specById` and `statusOf` can find it by id. */
+export function register(spec: NodeSpec): NodeSpec {
+  specs.set(spec.id, spec);
+  return spec;
 }
 
 /** The eight upgrade tiers of one tool, in unlock order. */
@@ -231,12 +260,16 @@ function remember(layer: LayerId, layout: TreeLayout): TreeLayout {
   return layout;
 }
 
-/** Structure is static apart from the track lane, so it is built once and kept. */
+/**
+ * Structure is static apart from the track lane, so it is built once and kept.
+ *
+ * Only the *layouts* are dropped when the specialisation changes. The spec registry is
+ * shared with `treegraph`, which registers anchors and hubs that no layer would ever put
+ * back — clearing it would make `specById` forget half the web.
+ */
 function ensureLayer(layer: LayerId): TreeLayout {
   if (builtForTrack !== S.track) {
     layouts.clear();
-    specs.clear();
-    layerOf.clear();
     builtForTrack = S.track;
   }
   const had = layouts.get(layer);
@@ -277,17 +310,41 @@ const thresholds = [10, 25, 50, 100, 175, 250, 350, 500];
 export function levelOf(spec: NodeSpec): number {
   if (spec.kind === "skill") return S.skills[spec.key] ?? 0;
   if (spec.kind === "gen") return S.gens[spec.key] ?? 0;
+  if (spec.kind === "anchor") return anchorReached(spec.key) ? 1 : 0;
   return S.upg[spec.key] ? 1 : 0;
+}
+
+/** Anchor keys are `rank:<i>`, `track:<id>`, `tap:clicks`, `tap:bugs`. */
+function anchorReached(key: string): boolean {
+  const [kind, id] = key.split(":");
+  if (kind === "rank") return S.rank >= Number(id);
+  if (kind === "track") return S.track === id;
+  return true;
+}
+
+function anchorLabel(key: string): string {
+  const [kind, id] = key.split(":");
+  if (kind === "rank") {
+    const i = Number(id);
+    return S.rank === i ? "you are here" : S.rank > i ? "passed" : "ahead";
+  }
+  if (kind === "track") {
+    if (S.track === id) return "chosen";
+    return S.track ? "not this run" : "open";
+  }
+  return id === "clicks" ? `${fmt(S.clicks)} lines` : `${fmt(S.bugsKilled)} killed`;
 }
 
 /** What pays for this node, and what that pile is called. */
 export function symbolOf(spec: NodeSpec): string {
+  if (spec.kind === "anchor") return "";
   if (spec.kind !== "skill") return "$";
   const sk = SKILL_BY_ID[spec.key];
   return sk.currency === "kp" ? "KP" : BRANCH_BY_ID[sk.currency as BranchId].sym;
 }
 
 export function balanceOf(spec: NodeSpec): number {
+  if (spec.kind === "anchor") return 0;
   if (spec.kind !== "skill") return S.money;
   const sk = SKILL_BY_ID[spec.key];
   return sk.currency === "kp" ? S.kp : S.cur[sk.currency as BranchId];
@@ -295,12 +352,14 @@ export function balanceOf(spec: NodeSpec): number {
 
 /** Price of the next single purchase. */
 export function costOf(spec: NodeSpec): number {
+  if (spec.kind === "anchor") return 0;
   if (spec.kind === "skill") return skillCost(SKILL_BY_ID[spec.key], levelOf(spec));
   if (spec.kind === "gen") return D.genCost[spec.key] ?? GEN_BY_ID[spec.key].cost;
   return UPGRADE_BY_ID[spec.key].cost;
 }
 
 export function priceLabel(spec: NodeSpec): string {
+  if (spec.kind === "anchor") return "not for sale";
   return spec.kind === "skill" ? `${fmt(costOf(spec))} ${symbolOf(spec)}` : money(costOf(spec));
 }
 
@@ -316,6 +375,7 @@ function genVisible(gid: string): boolean {
 }
 
 export function unlocked(spec: NodeSpec): boolean {
+  if (spec.kind === "anchor") return anchorReached(spec.key);
   if (spec.kind === "skill") return skillUnlocked(SKILL_BY_ID[spec.key]);
   if (spec.kind === "gen") return genVisible(spec.key);
   return upgradeUnlocked(UPGRADE_BY_ID[spec.key]);
@@ -323,6 +383,18 @@ export function unlocked(spec: NodeSpec): boolean {
 
 export function statusOf(node: TreeNodeSpec): NodeStatus {
   const spec = specs.get(node.id) ?? (node as NodeSpec);
+  if (spec.kind === "anchor") {
+    const own = spec.live?.();
+    const reached = own ? own.reached : anchorReached(spec.key);
+    return {
+      level: reached ? 1 : 0,
+      unlocked: reached,
+      ready: false,
+      maxed: false,
+      label: own ? own.label : anchorLabel(spec.key),
+      fill: own ? own.fill : reached ? 1 : 0,
+    };
+  }
   const level = levelOf(spec);
   const open = unlocked(spec);
   const maxed = spec.maxLevel > 0 && level >= spec.maxLevel;
@@ -352,6 +424,7 @@ export function statusOf(node: TreeNodeSpec): NodeStatus {
 
 /** Why a node is closed, in the player's terms. Empty when it is open. */
 export function lockReason(spec: NodeSpec): string {
+  if (spec.kind === "anchor") return unlocked(spec) ? "" : "Keep playing — this one arrives.";
   if (unlocked(spec)) return "";
 
   if (spec.kind === "skill") {
@@ -382,6 +455,7 @@ export function lockReason(spec: NodeSpec): string {
 
 /** How many more levels the current balance can pay for, capped. */
 export function affordableLevels(spec: NodeSpec, cap: number): number {
+  if (spec.kind === "anchor") return 0;
   if (spec.kind === "upgrade") return statusOf(spec).ready ? 1 : 0;
   if (spec.kind === "gen") return Math.min(cap, bulkCount(spec.key, "max"));
 
@@ -401,6 +475,7 @@ export function affordableLevels(spec: NodeSpec, cap: number): number {
 
 /** Buy up to `n` of whatever this node is. Returns how many were actually bought. */
 export function buyNode(spec: NodeSpec, n: number | "max"): number {
+  if (spec.kind === "anchor") return 0;
   if (spec.kind === "gen") {
     const k = bulkCount(spec.key, n);
     return k > 0 && buyGenerator(spec.key, n) === "ok" ? k : 0;

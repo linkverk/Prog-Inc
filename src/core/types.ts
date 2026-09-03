@@ -161,6 +161,8 @@ export interface Branch {
   faucet: string;
   /** KP price of the branch gateway */
   gateCost: number;
+  /** branches this one fights with over the same faucet — see PLAN.md §2 */
+  rivals?: BranchId[];
 }
 
 export interface Perk {

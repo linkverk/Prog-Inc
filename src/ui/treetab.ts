@@ -4,23 +4,30 @@ import {
   LAYERS, UPGRADE_TOTAL, affordableLevels, allNodes, anyAffordable, buyNode, layerLayout,
   levelOf, lockReason, priceLabel, specById, statusOf, unlocked, upgradesOwned,
 } from "./treemodel";
+import {
+  FAMILIES, allWebNodes, branchHubId, connectionsOf, edgeCount, familiesOn, hubOf, isOpen,
+  mode, nodeCount, openPath, setMode, shapeKey, toggleFamily, toggleOpen, webEdges, webRoot,
+} from "./treegraph";
 import { D, S, branchOpen } from "../core/engine";
 import { BRANCH_BY_ID } from "../data/branches";
 import { GENERATORS } from "../data/generators";
 import { fmt, money } from "../core/format";
 import { $, delegate, esc } from "./dom";
-import { buildTree, fitZoom, paintTree, scrollNodeIntoView, setZoom, type TreeView } from "./tree";
+import {
+  FIT_MIN, ZOOM_MIN, buildTree, centreView, enablePan, fitZoom, layoutRadial, paintTree,
+  scrollNodeIntoView, setZoom, type TreeView,
+} from "./tree";
 
 /** Highlight modes — the old shop filters, turned into a lens over the whole tree. */
-type Mode = "all" | "avail" | "afford" | "owned";
+type Lens = "all" | "avail" | "afford" | "owned";
 
 let selected: LayerId = "setup";
 let picked: string | null = null;
 let view: TreeView | null = null;
-let builtFor: LayerId | "" = "";
+let builtFor = "";
 let fitted = false;
 let query = "";
-let mode: Mode = "all";
+let lens: Lens = "all";
 let results: Found[] = [];
 let onChange: () => void = () => {};
 
@@ -28,17 +35,43 @@ const chips = new Map<LayerId, HTMLElement>();
 
 export { anyAffordable };
 
+/** In the web, a rail chip is a shortcut to that region's hub. */
+function hubFor(layer: LayerId): string {
+  if (layer === "setup") return "an:hub:setup";
+  if (layer === "upgrades") return "an:hub:upgrades";
+  if (layer === "global") return "sk:g0";
+  return branchHubId(layer as BranchId);
+}
+
 export function initTree(changed: () => void): void {
   onChange = changed;
 
-  delegate($("layerlist"), "[data-layer]", (t) => select(t.dataset.layer as LayerId));
+  delegate($("layerlist"), "[data-layer]", (t) => {
+    const layer = t.dataset.layer as LayerId;
+    if (mode() === "web") {
+      goTo(hubFor(layer));
+      return;
+    }
+    selected = layer;
+    renderTree();
+  });
 
-  delegate($("treecanvas"), "[data-node]", (t) => {
+  delegate($("treecanvas"), "[data-node]", (t, ev) => {
+    // the chevron lives inside the node button; it folds instead of selecting
+    const fold = (ev.target as HTMLElement | null)?.closest("[data-toggle]") as HTMLElement | null;
+    if (fold) {
+      toggleOpen(fold.dataset.toggle!);
+      renderTree();
+      if (view) scrollNodeIntoView(view, $("treecanvas"), fold.dataset.toggle!);
+      return;
+    }
     const spec = specById(t.dataset.node!);
     if (!spec) return;
-    // a branch gateway is also the door into that branch
-    if (spec.jump) {
-      select(spec.jump, spec.id);
+    // in the flat view a branch gateway is also the door into that branch
+    if (mode() === "layers" && spec.jump) {
+      selected = spec.jump;
+      picked = spec.id;
+      renderTree();
       return;
     }
     picked = spec.id;
@@ -49,48 +82,60 @@ export function initTree(changed: () => void): void {
     const spec = specById(t.dataset.buy!);
     if (!spec) return;
     const raw = t.dataset.n ?? "1";
-    const n = raw === "max" ? "max" : Number(raw);
-    if (buyNode(spec, n) > 0) {
+    const bought = buyNode(spec, raw === "max" ? "max" : Number(raw));
+    if (bought > 0) {
       renderTree();
       onChange();
     }
   });
 
-  delegate($("tree-results"), "[data-goto]", (t) => {
-    const id = t.dataset.goto!;
-    const found = results.find((r) => r.spec.id === id);
-    if (found) select(found.layer, id, true);
+  delegate($("treedetail"), "[data-goto]", (t) => goTo(t.dataset.goto!));
+  delegate($("tree-results"), "[data-goto]", (t) => goTo(t.dataset.goto!));
+
+  delegate($("tree-fams"), "[data-fam]", (t) => {
+    toggleFamily(t.dataset.fam!);
+    renderTree();
+  });
+
+  delegate($("tree-mode-switch"), "[data-mode]", (t) => {
+    setMode(t.dataset.mode as "web" | "layers");
+    picked = null;
+    renderTree();
+    refit();
   });
 
   $("zoom-in").addEventListener("click", () => nudgeZoom(0.15));
   $("zoom-out").addEventListener("click", () => nudgeZoom(-0.15));
-  $("zoom-fit").addEventListener("click", () => {
-    if (view) fitZoom(view, $("treecanvas"));
-    paintZoom();
-  });
+  $("zoom-fit").addEventListener("click", refit);
 
   $<HTMLInputElement>("tree-q").addEventListener("input", (e) => {
     query = (e.target as HTMLInputElement).value.trim().toLowerCase();
     renderTree();
   });
   $<HTMLSelectElement>("tree-mode").addEventListener("change", (e) => {
-    mode = (e.target as HTMLSelectElement).value as Mode;
+    lens = (e.target as HTMLSelectElement).value as Lens;
     renderTree();
   });
 
+  enablePan($("treecanvas"));
+
   $("tree-hint").innerHTML =
-    "Everything you can buy lives here: tools, upgrades and all eight branches, wired by " +
-    "what unlocks what. <b>Gateways open a path and are bought once — they can never be " +
-    "upgraded.</b> Pick a layer on the left, or search across all of them.";
+    `Every purchase in the game — ${nodeCount()} nodes — is one map, wired by what unlocks ` +
+    "what. <b>Gateways open a path and are bought once; they can never be upgraded.</b> " +
+    "Fold a branch with its chevron, switch edge families on below, or search every corner at once.";
 
   buildChips();
 }
 
-function select(layer: LayerId, node?: string, scroll = false): void {
-  selected = layer;
-  if (node) picked = node;
+/** Open the folds above a node, select it, and put it under the player's eyes. */
+function goTo(id: string): void {
+  const spec = specById(id);
+  if (!spec) return;
+  picked = id;
+  if (mode() === "web") openPath(id);
+  else if (spec.jump) selected = spec.jump;
   renderTree();
-  if (scroll && node && view) scrollNodeIntoView(view, $("treecanvas"), node);
+  if (view?.nodes.has(id)) scrollNodeIntoView(view, $("treecanvas"), id);
 }
 
 function nudgeZoom(by: number): void {
@@ -98,22 +143,47 @@ function nudgeZoom(by: number): void {
   paintZoom();
 }
 
+function refit(): void {
+  if (!view) return;
+  fitZoom(view, $("treecanvas"), mode() === "web" ? ZOOM_MIN : FIT_MIN);
+  // the web grows outwards from the middle, so fitting it means looking at the middle
+  if (mode() === "web") centreView(view, $("treecanvas"));
+  paintZoom();
+}
+
 function paintZoom(): void {
   $("zoom-val").textContent = view ? `${Math.round(view.zoom * 100)}%` : "";
+  // far enough out that names are noise: keep the shape, drop the words
+  $("treecanvas").classList.toggle("z-far", !!view && view.zoom < 0.55);
 }
 
 export function renderTree(): void {
+  const web = mode() === "web";
+  document.querySelectorAll<HTMLElement>("#tree-mode-switch [data-mode]").forEach((b) => {
+    b.setAttribute("aria-pressed", String((b.dataset.mode === "web") === web));
+  });
+  $("tree-fams").hidden = !web;
+  // the map wants room; a flat layer is happier short, next to its detail panel
+  $("treecanvas").classList.toggle("web", web);
+
   paintChips();
   renderHead();
   ensureTree();
   // the pane is hidden at boot, so the canvas has no width to fit against until it opens
   if (view && !fitted && $("treecanvas").clientWidth > 0) {
-    fitZoom(view, $("treecanvas"));
+    refit();
     fitted = true;
-    paintZoom();
   }
+  renderFamilies();
   const hl = renderSearch();
-  if (view) paintTree(view, { selected: picked, statusOf, highlight: hl });
+  if (view) {
+    paintTree(view, {
+      selected: picked,
+      statusOf,
+      highlight: hl,
+      families: web ? familiesOn() : null,
+    });
+  }
   renderDetail();
 }
 
@@ -137,6 +207,7 @@ function buildChips(): void {
 }
 
 function paintChips(): void {
+  const web = mode() === "web";
   for (const l of LAYERS) {
     const chip = chips.get(l.id);
     if (!chip) continue;
@@ -159,14 +230,15 @@ function paintChips(): void {
       const b = BRANCH_BY_ID[l.id as BranchId];
       const open = branchOpen(b.id);
       const all = layerLayout(b.id).nodes;
-      const owned = all.filter((n) => levelOf(n.spec as NodeSpec) > 0).length;
+      const have = all.filter((n) => levelOf(n.spec as NodeSpec) > 0).length;
       shut = !open;
       bal = open ? `${fmt(S.cur[b.id])} ${b.curName}` : `locked · ${fmt(b.gateCost)} KP`;
-      rate = open ? `+${fmt(D.curRate[b.id])}/s · ${owned}/${all.length} owned` : "";
+      rate = open ? `+${fmt(D.curRate[b.id])}/s · ${have}/${all.length} owned` : "";
     }
 
+    const here = web ? isOpen(hubFor(l.id)) : selected === l.id;
     chip.className = "lchip" + (shut ? " shut" : "");
-    chip.setAttribute("aria-pressed", String(selected === l.id));
+    chip.setAttribute("aria-pressed", String(here));
     text(chip, ".bbal", bal);
     text(chip, ".brate", rate);
   }
@@ -178,7 +250,7 @@ function text(host: HTMLElement, sel: string, s: string): void {
 }
 
 /* ---------------------------------------------------------------- *
- *  Head
+ *  Head and legend
  * ---------------------------------------------------------------- */
 
 function head(title: string, blurb: string, big: string, small: string): void {
@@ -188,6 +260,16 @@ function head(title: string, blurb: string, big: string, small: string): void {
 }
 
 function renderHead(): void {
+  if (mode() === "web") {
+    head(
+      "The map",
+      "You are the middle of it. Tools, upgrades, your career and the eight branches fan out " +
+        "around you; anything that is not a parent link arcs across the centre.",
+      `${fmt(D.lps)}`,
+      "LOC/s at the centre",
+    );
+    return;
+  }
   if (selected === "setup") {
     head(
       "Setup",
@@ -228,25 +310,51 @@ function renderHead(): void {
   );
 }
 
+function renderFamilies(): void {
+  if (mode() !== "web") return;
+  const on = familiesOn();
+  $("tree-fams").innerHTML = FAMILIES.map(
+    (f) =>
+      `<button class="fam ${f.id}" data-fam="${f.id}" aria-pressed="${on.has(f.id)}">` +
+      `<i></i>${esc(f.name)} <b>${edgeCount(f.id)}</b></button>`,
+  ).join("");
+}
+
 /* ---------------------------------------------------------------- *
  *  Canvas
  * ---------------------------------------------------------------- */
 
 function ensureTree(): void {
-  if (builtFor === selected && view) return;
+  const key = mode() === "web" ? `web:${shapeKey()}` : `layers:${selected}`;
+  if (builtFor === key && view) return;
   const host = $("treecanvas");
-  view = buildTree(host, layerLayout(selected));
-  builtFor = selected;
+  const keepLeft = host.scrollLeft;
+  const keepTop = host.scrollTop;
+  const sameMode = builtFor.startsWith(mode());
+
+  view = buildTree(
+    host,
+    mode() === "web" ? layoutRadial(webRoot(), webEdges()) : layerLayout(selected),
+  );
+  builtFor = key;
   fitted = false;
-  host.scrollLeft = 0;
-  host.scrollTop = 0;
+  // folding one branch should not throw the player back to the corner of the map
+  if (sameMode) {
+    host.scrollLeft = keepLeft;
+    host.scrollTop = keepTop;
+  } else if (mode() === "web") {
+    centreView(view, host);
+  } else {
+    host.scrollLeft = 0;
+    host.scrollTop = 0;
+  }
   paintZoom();
   if (!picked || !view.nodes.has(picked)) picked = defaultPick();
 }
 
-/** Something worth looking at: the first node on this layer you could actually buy. */
+/** Something worth looking at: the first node here you could actually buy. */
 function defaultPick(): string | null {
-  const nodes = layerLayout(selected).nodes;
+  const nodes = view?.layout.nodes ?? [];
   for (const n of nodes) if (statusOf(n.spec).ready) return n.spec.id;
   return nodes[0]?.spec.id ?? null;
 }
@@ -258,7 +366,7 @@ function defaultPick(): string | null {
 function matches(spec: NodeSpec): boolean {
   if (query && !`${spec.name} ${spec.desc}`.toLowerCase().includes(query)) return false;
   const st = statusOf(spec);
-  switch (mode) {
+  switch (lens) {
     case "owned": return st.level > 0;
     case "afford": return st.ready;
     case "avail": return unlocked(spec) && !st.maxed;
@@ -271,17 +379,23 @@ const layerName = (id: LayerId) => LAYERS.find((l) => l.id === id)?.name ?? id;
 /** Returns the ids to highlight, or null when no lens is active. */
 function renderSearch(): Set<string> | null {
   const host = $("tree-results");
-  if (!query && mode === "all") {
+  if (!query && lens === "all") {
     results = [];
     host.innerHTML = "";
     $("tree-count").textContent = "";
     return null;
   }
 
-  results = allNodes().filter((f) => matches(f.spec));
-  const here = results.filter((f) => f.layer === selected).length;
+  const web = mode() === "web";
+  results = web
+    ? allWebNodes().filter(matches).map((spec) => ({ spec, layer: "global" as LayerId }))
+    : allNodes().filter((f) => matches(f.spec));
+
+  const here = web
+    ? results.filter((f) => view?.nodes.has(f.spec.id)).length
+    : results.filter((f) => f.layer === selected).length;
   $("tree-count").textContent =
-    `${results.length} match${results.length === 1 ? "" : "es"} · ${here} on this layer`;
+    `${results.length} match${results.length === 1 ? "" : "es"} · ${here} ${web ? "on screen" : "on this layer"}`;
 
   host.innerHTML = query
     ? results
@@ -289,7 +403,8 @@ function renderSearch(): Set<string> | null {
         .map(
           (f) =>
             `<button class="tres" data-goto="${f.spec.id}">` +
-            `<span class="tresl">${esc(layerName(f.layer))}</span> ${esc(f.spec.name)}</button>`,
+            `<span class="tresl">${esc(web ? hubOf(f.spec.id) : layerName(f.layer))}</span> ` +
+            `${esc(f.spec.name)}</button>`,
         )
         .join("")
     : "";
@@ -301,11 +416,40 @@ function renderSearch(): Set<string> | null {
  *  Detail panel
  * ---------------------------------------------------------------- */
 
-function levelLine(spec: NodeSpec, level: number): string {
+function levelLine(spec: NodeSpec, level: number, label: string): string {
+  if (spec.kind === "anchor") return label;
   if (spec.kind === "gen") return `×${fmt(level)}`;
   if (spec.kind === "upgrade") return level > 0 ? "owned" : "not bought";
   if (spec.gateway) return level > 0 ? "opened" : "not opened";
   return `${level} / ${spec.maxLevel}`;
+}
+
+const VERBS: Record<string, [string, string]> = {
+  requires: ["needs", "unlocks"],
+  career: ["needs", "unlocks"],
+  affects: ["boosted by", "boosts"],
+  currency: ["fed by", "feeds"],
+  fight: ["fights", "fights"],
+};
+
+function renderConnections(id: string): string {
+  const links = connectionsOf(id);
+  if (!links.length) return "";
+  return (
+    `<div class="tdlinks">` +
+    links
+      .slice(0, 12)
+      .map((c) => {
+        const verb = VERBS[c.family]?.[c.outgoing ? 1 : 0] ?? c.family;
+        return (
+          `<button class="tdlink ${c.family}" data-goto="${c.id}">` +
+          `<span class="v">${verb}</span> ${esc(c.name)}</button>`
+        );
+      })
+      .join("") +
+    (links.length > 12 ? `<span class="counthint">+${links.length - 12} more</span>` : "") +
+    `</div>`
+  );
 }
 
 function renderDetail(): void {
@@ -327,14 +471,18 @@ function renderDetail(): void {
   host.innerHTML =
     `<div class="tdh"><span class="tdn">${esc(spec.name)}</span>` +
     `<span class="tdt">${esc(spec.tierLabel)}</span>` +
-    `<span class="tdl">${levelLine(spec, st.level)}</span></div>` +
+    `<span class="tdl">${esc(levelLine(spec, st.level, st.label))}</span></div>` +
     `<div class="tdd">${esc(spec.desc)}${extra}</div>` +
     (reason ? `<div class="tdreq">${esc(reason)}</div>` : "") +
+    renderConnections(spec.id) +
     `<div class="tdf">${actionsFor(spec)}</div>`;
 }
 
 function actionsFor(spec: NodeSpec): string {
   const st = statusOf(spec);
+  if (spec.kind === "anchor") {
+    return `<span class="skc ${st.unlocked ? "ok" : "no"}">${esc(st.label)}</span>`;
+  }
   if (st.maxed) return `<span class="skc ok">${spec.gateway ? "open" : "owned"}</span>`;
 
   const can = st.ready;

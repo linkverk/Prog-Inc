@@ -68,13 +68,33 @@ gone, the other wants them to exist.
 branch ones, and three sub-paths inside each branch. They cost once and can never be
 levelled. Everything else has 3 to 12 levels, 2,316 purchasable levels in total.
 
-**The tree is a tree.** Branches are drawn as a graph: tier per row, the gateway trunk down
-the middle, an edge for every prerequisite, lit once that prerequisite is deep enough. The
-Foundation view is the map of all eight branches; click one to walk into it. Zoom with the
-buttons, scroll the canvas, and buy from the panel under it.
+**One tree, not three shops.** Everything you can buy — 300 skills, 450 upgrades, 12 tools —
+is one graph on the **Tree** tab, wired by what unlocks what. Zoom with the buttons, drag the
+canvas around, buy from the panel underneath: `+1 / +10 / Max` for a skill, `×1 / ×10 / Max`
+for a tool, one **Buy** for an upgrade.
 
-**450 shop upgrades**, bought with money and lost on a job hop. Filter by family, search by
-name, or switch the view to "Affordable now" when the list gets long.
+**Web** is the default view: you in the middle, and 794 nodes fanning out in rings — your
+tools, the money ladders, your rank ladder and the eight branches. A chevron folds a whole
+region away, so the map starts as sixteen nodes and grows where you look. Ranks, the seven
+specialisations and the two taps (lines typed by hand, bugs squashed) are on the map too,
+which is how "needs rank 7" becomes a line you can follow. Anything that is not a
+parent–child link arcs across the centre, and the chips under the zoom buttons switch those
+families on and off: `requires`, `currency` (a branch skill paying a *different* branch),
+`rivalry` (Craft and Security fighting over the same bugs), `career`, `affects`. Whatever
+the chips say, selecting a node lights every edge it owns.
+
+**Layers** is the flat view for shopping: a rail on the left picks one region and lays it
+out in a grid — your **Setup** (each tool with its eight upgrade tiers), **Foundation** (the
+map of all eight branches), the **branches** themselves (tier per row, gateway trunk down
+the middle), and **Upgrades** (a lane per family, cheapest at the top). Buying eight tool
+tiers in a row is faster here than in a fan.
+
+**Search hits every layer at once.** Type a name and matches light up wherever they live;
+the lens beside it — available, affordable now, owned — dims everything else.
+
+**450 shop upgrades**, bought with money and lost on a job hop, live in that same tree:
+tool tiers under their tool, branch-flavoured ones under that branch's gateway,
+track-exclusive ones beside the five money ladders.
 
 **Seven specialisations** picked at rank 4, each with its own 13-rung ladder and one
 mechanic nobody else gets — releases, a hype meter, bug bounties, machine scaling, knowledge

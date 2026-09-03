@@ -3,7 +3,7 @@ type: concept
 id: overview
 updated: 2026-09-03
 sources: [plan-md]
-code: [PLAN.md, src/main.ts, src/core/engine.ts]
+code: [PLAN.md, src/main.ts, src/core/engine.ts, src/ui/treemodel.ts, src/ui/treetab.ts]
 ---
 
 # Zero to Ten-X — overview
@@ -26,10 +26,54 @@ A job hop (prestige) resets money and shop upgrades, pays reputation, and keeps 
 See [[currency-model]] for why knowledge does only one job, and [[gateway-rule]] for why
 gateways can never be upgraded.
 
-The branches tab draws this as an actual tree (`src/ui/tree.ts`): a row per tier, the
-gateway trunk down the middle, one edge per prerequisite, and Foundation as the map of all
-eight branches. The edges are what make [[gateway-rule]] legible in play — a locked tier
-reads as a missing parent rather than a mystery.
+## One tree, one tab
+
+Since 2026-09-03 every purchase in the game lives on a single **Tree** tab — the separate
+Setup and Upgrades tabs are gone. 762 nodes (300 skills + 450 shop upgrades + 12 generators)
+form one graph whose edges are the requirements already present in the data:
+`Skill.req`, `Upgrade.reqGen`, `reqBranch`, `reqTrack` (`src/ui/treemodel.ts`).
+
+762 nodes do not fit on one canvas, so a rail cuts the graph into **layers**, each a
+connected region of it, with a node acting as the door between two (`src/ui/treetab.ts`):
+
+| layer | nodes | shape |
+|---|---|---|
+| Setup | 108 | a column per tool, its eight upgrade tiers underneath |
+| Foundation | 12 | the map of all eight branches; a branch node walks into it |
+| each branch ×8 | 45 | tier per row, gateway trunk, branch upgrades under the gateway |
+| Upgrades | 248 (+6 with a specialisation) | a lane per money-bought family |
+
+`src/ui/tree.ts` is now a generic renderer — layouts, edges, zoom — that knows nothing about
+the game; it is handed node specs and a status function. The edges are what make
+[[gateway-rule]] legible in play: a locked tier reads as a missing parent rather than a
+mystery, and a tool upgrade visibly hangs off the tool it needs 25 of.
+
+## The web
+
+The layered view above is now the *second* mode. The default is a radial map
+(`src/ui/treegraph.ts` builds it, `layoutRadial` in `src/ui/tree.ts` places it): you at the
+centre, four folds around you — Setup, Upgrades, Career, Foundation — and the branches
+beyond. **794 nodes**: the 762 purchasable ones plus the centre, six folds, sixteen ranks,
+seven specialisations and two taps. Ranks and taps are a node kind of their own, `anchor`:
+nothing buys them, and they exist so `reqRank` stops being prose.
+
+The hierarchy is derived, not authored — a skill's parent is `req[0]`, so a branch trunk
+falls out of the data and every other prerequisite becomes an arc. Arcs bow towards the
+centre, which is what makes forty cross-branch links legible instead of felt.
+
+| family | joins | count |
+|---|---|---|
+| `tree` | parent → child | 793 |
+| `requires` | a `Skill.req` that is not the parent | 80 |
+| `career` | rank → the upgrades it gates | 202 |
+| `affects` | skill → tools it multiplies, `cheaper` skills → Setup | 67 |
+| `currency` | `crossCurrency.target` → the other branch — see [[faucet-antagonism]] | 40 |
+| `fight` | Craft ↔ Security, from `Branch.rivals` in `src/data/branches.ts` | 2 |
+
+`fx.gens` (96) and `fx.cur` (64) are deliberately **not** drawn: in both the effect edge
+would land on the node that is already the parent. View state — mode, open folds, which
+families are drawn — lives in `localStorage` under `zero10x.view.v1`, kept out of the save
+so `zero10x.save.v3` needs no migration.
 
 ## Verified content counts
 
