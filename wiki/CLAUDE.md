@@ -117,3 +117,36 @@ boundary is the whole policy.
 At the current size the index is enough — no embedding search, no vector store. Revisit
 only past roughly 100 sources; `qmd` (local hybrid BM25/vector, has an MCP server) is the
 intended next step, not a bespoke pipeline.
+
+## Viewing the graph
+
+This directory is an Obsidian vault. **Open folder as vault → `wiki/`** (not the repo root —
+the vault must not contain `src/` or `node_modules/`). `Ctrl/Cmd+G` opens the graph.
+
+`.obsidian/` is committed on purpose so the graph looks the same for everyone:
+
+| file | what it fixes |
+|---|---|
+| `graph.json` | node colours by layer, arrows on, orphans and unresolved links **shown** |
+| `core-plugins.json` | graph, backlinks, outgoing links, outline on; daily notes and canvas off |
+| `app.json` | `[[wikilinks]]` not markdown links, shortest form, attachments to `attachments/` |
+
+Attachments go to `wiki/attachments/`, never to `raw/` — `raw/` is the human's immutable layer.
+
+Graph colours map to the Lint operation, so the picture is readable as a lint report:
+
+| colour | layer |
+|---|---|
+| blue | `pages/entities/` |
+| amber | `pages/concepts/` |
+| red | `pages/sources/` |
+| green | `overview`, `index` |
+| grey | `CLAUDE`, `log` |
+| ghost (hollow) | **unresolved link** — a concept named but never written |
+| unconnected | **orphan page** — nothing links to it |
+
+Ghost and orphan nodes are left visible deliberately: they are the two lint failures the
+graph can show without running anything.
+
+`Dataview` is a community plugin — install it manually if the `code:` frontmatter queries
+in this schema are ever wanted; core plugins alone do not provide it.

@@ -1,0 +1,5 @@
+# Per-user UI state and caches — config above is shared on purpose
+workspace.json
+workspace-mobile.json
+cache
+app.json.bak
